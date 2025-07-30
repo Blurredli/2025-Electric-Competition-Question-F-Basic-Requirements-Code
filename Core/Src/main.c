@@ -263,111 +263,68 @@ int main(void)
   // uint32_t nowtime = HAL_GetTick();
   // uint32_t last_m = 0xFFFFFFFF;  // 初始化为一个不可能的值
   HAL_Delay(100);
+  uint8_t found = 0;        // 表示是否已经锁频
+  uint32_t locked_rf = 0;   // 记录锁定的RF频率
+  float v_fm, v_am;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-        uint8_t found = 0;
-        for (uint32_t rf = F_START; rf <= F_END; rf += F_STEP) {
-            // 计算中频 LO
-            uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
-            uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
-            DDS_Output_Two(lo_fm, lo_am);
-            // printf("FM: %d Hz, AM: %d Hz\r\n", lo_fm, lo_am);
-            float v_fm, v_am;
-            Compute_Dual_Voltage(&v_fm, &v_am);
+      Compute_Dual_Voltage(&v_fm, &v_am);
+      if(v_fm > 1.7f && v_am > 1.7f)
+      {
+         found = 0; // 如果两路电压都大于阈值，表示未解调成功
+         printf("Signal lost, re-scanning...\r\n");
+      }
+        if (!found)
+        {
+          for (uint32_t rf = F_START; rf <= F_END; rf += F_STEP) {
+              // 计算中频 LO
+              uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
+              uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
+              DDS_Output_Two(lo_fm, lo_am);
+              // printf("FM: %d Hz, AM: %d Hz\r\n", lo_fm, lo_am);
+              Compute_Dual_Voltage(&v_fm, &v_am);
 
-            // 任意一路电压 <1.6V  实际给1.7 V 表示解调成功，停止扫频
-            if (v_fm < 1.6f || v_am > 1.6f) {
-                found = 1;
-                // 判断解调模式
-                if (v_fm > 1.6f && v_am <= 1.6f) {
+              // 任意一路电压 < 1.7f 表示解调成功，停止扫频
+              if (v_fm <= 1.7f || v_am <= 1.7f) 
+              {
+                  found = 1;
+                  locked_rf = rf;
+                  // 判断解调模式
+                if (v_fm <= 1.7f && v_am >= 1.7f) 
+                {
                     printf("FM Found at RF=%lu Hz, Vfm=%.3f V\r\n", rf, v_fm);
-                } else if (v_am > 1.6f && v_fm <= 1.6f) {
+                } else if (v_am <= 1.7f && v_fm >= 1.7f) 
+                {
                     printf("AM Found at RF=%lu Hz, Vam=%.3f V\r\n", rf, v_am);
-                } else {
+                } else 
+                {
                     printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);
                 }
-                // 更新 LED 状态
-                HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin,
-                    (v_fm > 1.6f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
-                HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin,
-                    (v_am > 1.6f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
-                // 保持当前 LO 输出
-                break;
-            }
-            // else{printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);}
+                  // 更新 LED 状态
+                  HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin,
+                      (v_fm <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+                  HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin,
+                      (v_am <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+                  // 保持当前 LO 输出
+                  break;
+              }
+              // else{printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);}
+          }
+          if (!found) {
+              // 全频段无任意一路>1.6V，单频载波或无信号
+              printf("Single-tone detected (no FM/AM)\r\n");
+              HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
+          }
         }
-        if (!found) {
-            // 全频段无任意一路>1.6V，单频载波或无信号
-            printf("Single-tone detected (no FM/AM)\r\n");
-            HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
-        }
+
         HAL_Delay(5);
 
-        // if (HAL_GetTick() - nowtime >= 500)
-        // {
-        //     nowtime = HAL_GetTick(); 
-        // }
-        // for (uint16_t i = 0; i < LEN; i++)
-        // {
-        //     float voltage = adc_buff[i] * 3.3f / 4095.0f;
-        //     printf("ADC actual value[%3d] = %.3f V\n", i, voltage);
-        //     sum += adc_buff[i];
-        // }
-        // // 循环结束后计算平均
-        // float avg_voltage = (float)sum * 3.3f / (4095.0f * (float)LEN);
-        // float Jp = Compute_J_raw();
-        // float avg_voltage = (float)Jp * 3.3f / 4095.0f;
 
-        // printf("ADC average voltage = %.3f V\n", avg_voltage);
-
-        // sprintf(str, "t2.txt=\"%.3f\"", avg_voltage);
-        // tjc_send_string(str);
-        
-        // sprintf(str, "t3.txt=\"%.3f\"", (float)RES * 39.0625);
-        // tjc_send_string(str);
-
-        // RES++;
-        //串口数据格式：
-        //串口数据帧长度：8字节
-        //帧头     低位在前(4字节)  帧尾
-        //0x55       u4字节               0xffffff
-        //当参数是01时
-        //帧头     参数1    参数2   参数3       帧尾
-        //0x55     01     led编号  led状态    0xffffff
-        //例子1：上位机代码  printh 55 01 01 00 ff ff ff  含义：1号led关闭
-        //例子2：上位机代码  printh 55 01 04 01 ff ff ff  含义：4号led打开
-        //例子3：上位机代码  printh 55 01 00 01 ff ff ff  含义：0号led打开
-        //例子4：上位机代码  printh 55 01 04 00 ff ff ff  含义：4号led关闭
-        //当参数是02或03时
-        //帧头     参数1    参数2   参数3       帧尾
-        //0x55     02/03   滑动值    00    0xffffff
-        //例子1：上位机代码  printh 55 02 64 00 ff ff ff  含义：h0.val=100
-        //例子2：上位机代码  printh 55 02 00 00 ff ff ff  含义：h0.val=0
-        //例子3：上位机代码  printh 55 03 64 00 ff ff ff  含义：h1.val=100
-        //例子4：上位机代码  printh 55 03 00 00 ff ff ff  含义：h1.val=0
-        // 当串口缓冲区大于等于一帧的长度时
-        // while (usize >= FRAME_LENGTH)
-        // {
-        //     // 校验帧头帧尾是否匹配
-        //     if (usize >= FRAME_LENGTH && u(0) == 0x55 && u(5) == 0xff && u(6) == 0xff && u(7) == 0xff)
-        //     {
-        //         m =  (uint32_t)u(1)
-        //             | ((uint32_t)u(2) << 8)
-        //             | ((uint32_t)u(3) << 16)
-        //             | ((uint32_t)u(4) << 24);
-        //         udelete(FRAME_LENGTH); // 删除解析过的数据
-        //     } else
-        //     {
-        //         // 不匹配删除1字节
-        //         udelete(1);
-        //         break;
-        //     }
-        // }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

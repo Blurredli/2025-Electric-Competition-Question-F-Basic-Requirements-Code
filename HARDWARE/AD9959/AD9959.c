@@ -62,7 +62,7 @@ void AD9959_Init(void)
 //ÑÓÊ±
 void delay1 (uint32_t length)
 {
-    delay_us(200);
+    delay_us(2000);
 }
 /************************************************************
 ** º¯ÊýÃû³Æ £ºvoid Intserve(void)		   
