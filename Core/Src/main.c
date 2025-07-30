@@ -39,13 +39,17 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 #define FRAME_LENGTH 8
-#define LEN 50
+#define DETECT_BUF_LEN 25
 
 #define F_START    88000000UL   // 起始 RF 频率 88 MHz
 #define F_END      108000000UL  // 结束 RF 频率 108 MHz
 #define F_STEP     100000UL     // 搜索步进 100 kHz
 
-// 牛顿迭代法
+// DDS 通道定义
+#define DDS_CH_FM       CH0            // AD9959 通道 0 用于 FM LO
+#define DDS_CH_AM       CH1            // AD9959 通道 1 用于 AM LO
+#define DDS_AMP         1023         // 最大幅度值（10-bit）
+#define DDS_PHASE       0            // 相位校正值 (0)
 
 /* USER CODE END PTD */
 
@@ -62,19 +66,15 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-// 全局变量：保存 Newton 最终结果
-static float   g_final_J = 0.0f;    // 收敛时的 RMS 原始码值
-static uint8_t g_final_phi = 0;   // 收敛时的数字电位器码值
-
-static uint32_t m = 1000; // 用于控制 AD9959 的频率
-
-uint16_t adc_buff[LEN];//存放ADC采集的数据
+volatile uint16_t detect_buf1[DETECT_BUF_LEN];
+volatile uint16_t detect_buf2[DETECT_BUF_LEN];
 /* 
-AdcConvEnd用来检测ADC是否采集完毕
+DetectConvEnd1用来检测ADC是否采集完毕
 0：没有采集完毕
 1：采集完毕，在stm32f1xx_it里的DMA完成中断进行修改
  */
-__IO uint8_t AdcConvEnd = 0;
+volatile uint8_t  DetectConvEnd1 = 0;
+volatile uint8_t  DetectConvEnd2 = 0;
 
 /* USER CODE END PV */
 
@@ -123,46 +123,92 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     }
 }
 
-// —— 读取 ADC 平均电压值 —— 
-static float Compute_J_raw(void)
+/**
+ * @brief 通过指定 DDS 通道输出正弦波并等待稳定
+ */
+static void DDS_Output_Channel(uint8_t ch, uint32_t freq)
 {
-    AdcConvEnd = 0;
-    HAL_TIM_Base_Start(&htim3);                                 // 5 kHz 触发
-    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buff, LEN);
-    while (!AdcConvEnd);
-    HAL_TIM_Base_Stop(&htim3);
-
-    uint32_t sum = 0;
-    for (uint16_t i = 0; i < LEN; i++) 
-    {
-    
-        sum += adc_buff[i];
-    }
-    // 返回平均原始码
-    float avg_raw =  (float)sum / (float)LEN;
-    return avg_raw * (3.3f / 4095.0f);
+    AD9959_Set_Fre(ch,   freq);
+    AD9959_Set_Amp(ch,   DDS_AMP);
+    AD9959_Set_Phase(ch, DDS_PHASE);
+    IO_Update();
+    HAL_Delay(5);
 }
 
 /**
- * @brief 利用 Newton_Minimize_Raw 已计算的值，打印电压和阻值。
+ * @brief 同时配置两通道 DDS 输出
  */
-void Print_Debug_Info(void)
+static void DDS_Output_Two(uint32_t lo_fm, uint32_t lo_am)
 {
-    char str[64];
-    // 原始码值转换为电压
-    float avg_voltage = g_final_J * 3.3f / 4095.0f;
-    // 数字电位器实际阻值
-    float res_ohm = (float)g_final_phi * 39.0625f;
+    DDS_Output_Channel(DDS_CH_FM, lo_fm);
+    DDS_Output_Channel(DDS_CH_AM, lo_am);
+}
 
-    // 串口打印
-    printf("ADC average voltage = %.3f V\n", avg_voltage);
-    printf("Pot Resistance = %.2f Ω\n", res_ohm);
+/**
+ * @brief 同时使用 TIM3 触发 ADC1/ADC2 + DMA 采集两路检测电压
+ * @param[out] v_fm 输出 FM 通道平均电压 (V)
+ * @param[out] v_am 输出 AM 通道平均电压 (V)
+ */
+static void Compute_Dual_Voltage(float *v_fm, float *v_am)
+{
+    DetectConvEnd1 = DetectConvEnd2 = 0;
+    // 启动 DMA
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)detect_buf1, DETECT_BUF_LEN);
+    HAL_ADC_Start_DMA(&hadc2, (uint32_t*)detect_buf2, DETECT_BUF_LEN);
+    // 启动 TIM3 触发两路 ADC
+    HAL_TIM_Base_Start(&htim3);
+    // 等待两路完成
+    while (!(DetectConvEnd1 && DetectConvEnd2)) {}
+    // 停止触发和 DMA
+    HAL_TIM_Base_Stop(&htim3);
+    HAL_ADC_Stop_DMA(&hadc1);
+    HAL_ADC_Stop_DMA(&hadc2);
 
-    // TFT 显示 t2=电压, t3=阻值
-    sprintf(str, "t2.txt=\"%.3f\"", avg_voltage);
-    tjc_send_string(str);
-    sprintf(str, "t3.txt=\"%.2f\"", res_ohm);
-    tjc_send_string(str);
+    // 计算 FM 平均电压
+    uint32_t sum1 = 0;
+    for (uint16_t i = 0; i < DETECT_BUF_LEN; i++) sum1 += detect_buf1[i];
+    *v_fm = ((float)sum1 / DETECT_BUF_LEN) * (3.3f / 4095.0f);
+    // 计算 AM 平均电压
+    uint32_t sum2 = 0;
+    for (uint16_t i = 0; i < DETECT_BUF_LEN; i++) sum2 += detect_buf2[i];
+    *v_am = ((float)sum2 / DETECT_BUF_LEN) * (3.3f / 4095.0f);
+}
+
+/**
+ * @brief 自动搜索并检测 FM/AM 解调输出，使用双 LO+双 ADC
+ * @return 找到 单路 or 双路 的标志
+ */
+uint8_t AutoScanAndDetect_Dual(void)
+{
+    const uint32_t IF_FM = 10700000UL;
+    const uint32_t IF_AM =   455000UL;
+    uint8_t found_fm = 0, found_am = 0;
+    uint32_t found_rf_fm = 0, found_rf_am = 0;
+
+    for (uint32_t rf = F_START; rf <= F_END; rf += F_STEP) {
+        uint32_t lo_fm = (rf > IF_FM) ? (rf - IF_FM) : 0;
+        uint32_t lo_am = (rf > IF_AM) ? (rf - IF_AM) : 0;
+        // 同时输出两路 LO
+        DDS_Output_Two(lo_fm, lo_am);
+        // 同步采集两路电压
+        float v_fm, v_am;
+        Compute_Dual_Voltage(&v_fm, &v_am);
+
+        if (!found_fm && v_fm < 1.6f) {
+            found_fm = 1;
+            found_rf_fm = rf;
+            printf("FM Locked RF=%lu Hz, LO=%lu Hz, V=%.3f V\r\n", rf, lo_fm, v_fm);
+        }
+        if (!found_am && v_am < 1.6f) {
+            found_am = 1;
+            found_rf_am = rf;
+            printf("AM Locked RF=%lu Hz, LO=%lu Hz, V=%.3f V\r\n", rf, lo_am, v_am);
+        }
+        if (found_fm && found_am) break;
+    }
+    if (!found_fm) printf("FM not detected\r\n");
+    if (!found_am) printf("AM not detected\r\n");
+    return (found_fm << 1) | found_am;
 }
 
 /* USER CODE END PFP */
@@ -202,6 +248,7 @@ int main(void)
   MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_ADC1_Init();
+  MX_ADC2_Init();
   MX_USART2_UART_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
