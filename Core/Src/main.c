@@ -297,7 +297,7 @@ int main(void)
                 // 保持当前 LO 输出
                 break;
             }
-            else{printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);}
+            // else{printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);}
         }
         if (!found) {
             // 全频段无任意一路>1.6V，单频载波或无信号
