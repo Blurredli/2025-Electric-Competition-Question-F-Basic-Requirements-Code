@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../zdyz_ZYNQ_FPGA/vivado_code/vivado_prj/A_danmokuai_gork_SSb/code"
+		}
+	],
+	"settings": {
+		"C_Cpp.errorSquiggles": "enabled",
+		"files.associations": {
+			"gpio.h": "c",
+			"string.h": "c",
+			"stdio.h": "c"
+		}
+	}
+}
