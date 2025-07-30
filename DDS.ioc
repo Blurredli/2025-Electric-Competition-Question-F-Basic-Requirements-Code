@@ -93,6 +93,7 @@ Mcu.UserConstants=
 Mcu.UserName=STM32F407ZGTx
 MxCube.Version=6.13.0
 MxDb.Version=DB.6.0.130
+NVIC.ADC_IRQn=true\:0\:0\:false\:false\:true\:true\:true\:true
 NVIC.BusFault_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
 NVIC.DMA2_Stream0_IRQn=true\:0\:0\:false\:false\:true\:false\:true\:true
 NVIC.DMA2_Stream2_IRQn=true\:0\:0\:false\:false\:true\:false\:true\:true

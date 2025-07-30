@@ -160,9 +160,9 @@ static void Compute_Dual_Voltage(float *v_fm, float *v_am)
     // 等待两路完成
     while (!(DetectConvEnd1 && DetectConvEnd2)) {}
     // 停止触发和 DMA
-    HAL_TIM_Base_Stop(&htim3);
-    HAL_ADC_Stop_DMA(&hadc1);
-    HAL_ADC_Stop_DMA(&hadc2);
+    // HAL_TIM_Base_Stop(&htim3);
+    // HAL_ADC_Stop_DMA(&hadc1);
+    // HAL_ADC_Stop_DMA(&hadc2);
 
     // 计算 FM 平均电压
     uint32_t sum1 = 0;
@@ -248,9 +248,9 @@ int main(void)
   MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_ADC1_Init();
-  MX_ADC2_Init();
   MX_USART2_UART_Init();
   MX_TIM3_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
   delay_init(168);                            /* 延时初始化 */
   HAL_Delay(100); 
@@ -268,30 +268,16 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+        
+
+
+
+
+
         // if (HAL_GetTick() - nowtime >= 500)
         // {
         //     nowtime = HAL_GetTick(); 
-            Newton_Minimize_Raw();
-            Print_Debug_Info();
         // }
-        if ((m != last_m) && (HAL_GetTick() - nowtime >= 1500))
-        {
-            // m 变化了，才执行更新
-            last_m = m;              // 记录本次值
-            nowtime = HAL_GetTick(); 
-
-            // 以下这段只在 m 变化时跑一次：
-            AD9959_Set_Fre(CH0, m);
-            AD9959_Set_Amp(CH0, 1023);
-            AD9959_Set_Phase(CH0, 0);
-
-            AD9959_Set_Fre(CH1, m);
-            AD9959_Set_Amp(CH1, 1023);
-            AD9959_Set_Phase(CH1, 0);
-            
-            IO_Update();
-            HAL_Delay(10);
-        }
         // HAL_TIM_Base_Start(&htim3);                           //开启定时器3 定时器为100KHZ
         // HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buff, LEN); //ADC由TIM3的溢出事件控制(采样率100KHZ)让ADC1去采集200个数，存放到adc_buff[LEN]数组里
 
