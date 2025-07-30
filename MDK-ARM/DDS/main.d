@@ -44,9 +44,9 @@ dds\main.o: D:\keil5\ARM\ARMCC\Bin\..\include\string.h
 dds\main.o: D:\keil5\ARM\ARMCC\Bin\..\include\math.h
 dds\main.o: D:\keil5\ARM\ARMCC\Bin\..\include\float.h
 dds\main.o: D:\keil5\ARM\ARMCC\Bin\..\include\limits.h
+dds\main.o: ../HARDWARE/AD9959/AD9959.h
+dds\main.o: ../SYSTEM/sys/sys.h
 dds\main.o: ../HARDWARE/HMI/tjc_usart_hmi.h
 dds\main.o: D:\keil5\ARM\ARMCC\Bin\..\include\stdio.h
 dds\main.o: ../SYSTEM/delay/delay.h
-dds\main.o: ../SYSTEM/sys/sys.h
-dds\main.o: ../HARDWARE/MCP41010/MCP41010.h
 dds\main.o: D:\keil5\ARM\ARMCC\Bin\..\include\stdlib.h
