@@ -50,6 +50,7 @@
 #define DDS_CH_AM       CH1            // AD9959 通道 1 用于 AM LO
 #define DDS_AMP         1023         // 最大幅度值（10-bit）
 #define DDS_PHASE       0            // 相位校正值 (0)
+#define DETECT_THRESHOLD 1.7f        // 检测阈值：<1.7V 表示成功解调，未解调默认 3.3V
 
 /* USER CODE END PTD */
 
@@ -132,7 +133,7 @@ static void DDS_Output_Channel(uint8_t ch, uint32_t freq)
     AD9959_Set_Amp(ch,   DDS_AMP);
     AD9959_Set_Phase(ch, DDS_PHASE);
     IO_Update();
-    HAL_Delay(5);
+    delay_us(1);
 }
 
 /**
@@ -268,18 +269,18 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-                uint8_t found = 0;
+        uint8_t found = 0;
         for (uint32_t rf = F_START; rf <= F_END; rf += F_STEP) {
             // 计算中频 LO
             uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
             uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
             DDS_Output_Two(lo_fm, lo_am);
-            printf("FM: %d Hz, AM: %d Hz\r\n", lo_fm, lo_am);
+            // printf("FM: %d Hz, AM: %d Hz\r\n", lo_fm, lo_am);
             float v_fm, v_am;
             Compute_Dual_Voltage(&v_fm, &v_am);
 
-            // 任意一路电压 >1.6V 表示解调成功，停止扫频
-            if (v_fm > 1.6f || v_am > 1.6f) {
+            // 任意一路电压 <1.6V  实际给1.7 V 表示解调成功，停止扫频
+            if (v_fm < 1.6f || v_am > 1.6f) {
                 found = 1;
                 // 判断解调模式
                 if (v_fm > 1.6f && v_am <= 1.6f) {
@@ -305,7 +306,7 @@ int main(void)
             HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
         }
-        HAL_Delay(50);
+        HAL_Delay(5);
 
         // if (HAL_GetTick() - nowtime >= 500)
         // {

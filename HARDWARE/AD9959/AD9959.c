@@ -1,4 +1,5 @@
 #include "AD9959.h"
+#include "delay.h"
 															
 uint8_t FR1_DATA[3] = {0xD0,0x00,0x00};//VCO gain control[23]=1系统时钟高于255Mhz; PLL[22:18]=10100,20倍频,20*25M=500MHZ; Charge pump control = 75uA 
 
@@ -61,7 +62,7 @@ void AD9959_Init(void)
 //延时
 void delay1 (uint32_t length)
 {
-    HAL_Delay(length * 4);
+    delay_us(200);
 }
 /************************************************************
 ** 函数名称 ：void Intserve(void)		   

@@ -33,7 +33,7 @@ Section Cross References
     main.o(i.DDS_Output_Channel) refers to ad9959.o(i.AD9959_Set_Amp) for AD9959_Set_Amp
     main.o(i.DDS_Output_Channel) refers to ad9959.o(i.AD9959_Set_Phase) for AD9959_Set_Phase
     main.o(i.DDS_Output_Channel) refers to ad9959.o(i.IO_Update) for IO_Update
-    main.o(i.DDS_Output_Channel) refers to stm32f4xx_hal.o(i.HAL_Delay) for HAL_Delay
+    main.o(i.DDS_Output_Channel) refers to delay.o(i.delay_us) for delay_us
     main.o(i.HAL_GPIO_EXTI_Callback) refers to stm32f4xx_hal.o(i.HAL_GetTick) for HAL_GetTick
     main.o(i.HAL_GPIO_EXTI_Callback) refers to stm32f4xx_hal_gpio.o(i.HAL_GPIO_ReadPin) for HAL_GPIO_ReadPin
     main.o(i.HAL_GPIO_EXTI_Callback) refers to main.o(.data) for .data
@@ -55,9 +55,9 @@ Section Cross References
     main.o(i.main) refers to tjc_usart_hmi.o(i.initRingBuffer) for initRingBuffer
     main.o(i.main) refers to stm32f4xx_hal_uart.o(i.HAL_UART_Receive_IT) for HAL_UART_Receive_IT
     main.o(i.main) refers to main.o(i.DDS_Output_Channel) for DDS_Output_Channel
-    main.o(i.main) refers to printfa.o(i.__0printf) for __2printf
     main.o(i.main) refers to main.o(i.Compute_Dual_Voltage) for Compute_Dual_Voltage
     main.o(i.main) refers to f2d.o(.text) for __aeabi_f2d
+    main.o(i.main) refers to printfa.o(i.__0printf) for __2printf
     main.o(i.main) refers to stm32f4xx_hal_gpio.o(i.HAL_GPIO_WritePin) for HAL_GPIO_WritePin
     main.o(i.main) refers to tjc_usart_hmi.o(.data) for RxBuffer
     main.o(i.main) refers to usart.o(.bss) for huart1
@@ -1331,7 +1331,6 @@ Removing Unused input sections from the image.
     Removing delay.o(.revsh_text), (4 bytes).
     Removing delay.o(.rrx_text), (6 bytes).
     Removing delay.o(i.delay_ms), (26 bytes).
-    Removing delay.o(i.delay_us), (52 bytes).
     Removing sys.o(.rev16_text), (4 bytes).
     Removing sys.o(.revsh_text), (4 bytes).
     Removing sys.o(.rrx_text), (6 bytes).
@@ -1375,7 +1374,7 @@ Removing Unused input sections from the image.
     Removing mcp41010.o(i.MCP41010_Write), (148 bytes).
     Removing mcp41010.o(.data), (2 bytes).
 
-484 unused section(s) (total 34442 bytes) removed from the image.
+483 unused section(s) (total 34390 bytes) removed from the image.
 
 ==============================================================================
 
@@ -1665,14 +1664,15 @@ Image Symbol Table
     _printf_pre_padding                      0x080037f1   Thumb Code    46  printfa.o(i._printf_pre_padding)
     i.delay1                                 0x0800381e   Section        0  ad9959.o(i.delay1)
     i.delay_init                             0x08003824   Section        0  delay.o(i.delay_init)
-    i.fputc                                  0x08003838   Section        0  usart.o(i.fputc)
-    i.initRingBuffer                         0x08003850   Section        0  tjc_usart_hmi.o(i.initRingBuffer)
-    i.main                                   0x08003860   Section        0  main.o(i.main)
-    i.write1ByteToRingBuffer                 0x08003acc   Section        0  tjc_usart_hmi.o(i.write1ByteToRingBuffer)
-    .constdata                               0x08003afc   Section        8  stm32f4xx_hal_dma.o(.constdata)
-    flagBitshiftOffset                       0x08003afc   Data           8  stm32f4xx_hal_dma.o(.constdata)
-    .constdata                               0x08003b04   Section       16  system_stm32f4xx.o(.constdata)
-    .constdata                               0x08003b14   Section        8  system_stm32f4xx.o(.constdata)
+    i.delay_us                               0x08003838   Section        0  delay.o(i.delay_us)
+    i.fputc                                  0x0800386c   Section        0  usart.o(i.fputc)
+    i.initRingBuffer                         0x08003884   Section        0  tjc_usart_hmi.o(i.initRingBuffer)
+    i.main                                   0x08003894   Section        0  main.o(i.main)
+    i.write1ByteToRingBuffer                 0x08003abc   Section        0  tjc_usart_hmi.o(i.write1ByteToRingBuffer)
+    .constdata                               0x08003aec   Section        8  stm32f4xx_hal_dma.o(.constdata)
+    flagBitshiftOffset                       0x08003aec   Data           8  stm32f4xx_hal_dma.o(.constdata)
+    .constdata                               0x08003af4   Section       16  system_stm32f4xx.o(.constdata)
+    .constdata                               0x08003b04   Section        8  system_stm32f4xx.o(.constdata)
     .data                                    0x20000000   Section       12  main.o(.data)
     last_time                                0x20000004   Data           4  main.o(.data)
     last_time                                0x20000008   Data           4  main.o(.data)
@@ -1960,14 +1960,15 @@ Image Symbol Table
     __scatterload_zeroinit                   0x08002f7d   Thumb Code    14  handlers.o(i.__scatterload_zeroinit)
     delay1                                   0x0800381f   Thumb Code     6  ad9959.o(i.delay1)
     delay_init                               0x08003825   Thumb Code    16  delay.o(i.delay_init)
-    fputc                                    0x08003839   Thumb Code    20  usart.o(i.fputc)
-    initRingBuffer                           0x08003851   Thumb Code    12  tjc_usart_hmi.o(i.initRingBuffer)
-    main                                     0x08003861   Thumb Code   390  main.o(i.main)
-    write1ByteToRingBuffer                   0x08003acd   Thumb Code    42  tjc_usart_hmi.o(i.write1ByteToRingBuffer)
-    AHBPrescTable                            0x08003b04   Data          16  system_stm32f4xx.o(.constdata)
-    APBPrescTable                            0x08003b14   Data           8  system_stm32f4xx.o(.constdata)
-    Region$$Table$$Base                      0x08003b1c   Number         0  anon$$obj.o(Region$$Table)
-    Region$$Table$$Limit                     0x08003b3c   Number         0  anon$$obj.o(Region$$Table)
+    delay_us                                 0x08003839   Thumb Code    48  delay.o(i.delay_us)
+    fputc                                    0x0800386d   Thumb Code    20  usart.o(i.fputc)
+    initRingBuffer                           0x08003885   Thumb Code    12  tjc_usart_hmi.o(i.initRingBuffer)
+    main                                     0x08003895   Thumb Code   346  main.o(i.main)
+    write1ByteToRingBuffer                   0x08003abd   Thumb Code    42  tjc_usart_hmi.o(i.write1ByteToRingBuffer)
+    AHBPrescTable                            0x08003af4   Data          16  system_stm32f4xx.o(.constdata)
+    APBPrescTable                            0x08003b04   Data           8  system_stm32f4xx.o(.constdata)
+    Region$$Table$$Base                      0x08003b0c   Number         0  anon$$obj.o(Region$$Table)
+    Region$$Table$$Limit                     0x08003b2c   Number         0  anon$$obj.o(Region$$Table)
     DetectConvEnd1                           0x20000000   Data           1  main.o(.data)
     DetectConvEnd2                           0x20000001   Data           1  main.o(.data)
     uwTickFreq                               0x2000000c   Data           1  stm32f4xx_hal.o(.data)
@@ -2000,9 +2001,9 @@ Memory Map of the image
 
   Image Entry point : 0x08000189
 
-  Load Region LR_IROM1 (Base: 0x08000000, Size: 0x00003b74, Max: 0x00100000, ABSOLUTE)
+  Load Region LR_IROM1 (Base: 0x08000000, Size: 0x00003b64, Max: 0x00100000, ABSOLUTE)
 
-    Execution Region ER_IROM1 (Exec base: 0x08000000, Load base: 0x08000000, Size: 0x00003b3c, Max: 0x00100000, ABSOLUTE)
+    Execution Region ER_IROM1 (Exec base: 0x08000000, Load base: 0x08000000, Size: 0x00003b2c, Max: 0x00100000, ABSOLUTE)
 
     Exec Addr    Load Addr    Size         Type   Attr      Idx    E Section Name        Object
 
@@ -2162,38 +2163,39 @@ Memory Map of the image
     0x080037f0   0x080037f0   0x0000002e   Code   RO         4098    i._printf_pre_padding  mc_w.l(printfa.o)
     0x0800381e   0x0800381e   0x00000006   Code   RO         3560    i.delay1            ad9959.o
     0x08003824   0x08003824   0x00000014   Code   RO         3461    i.delay_init        delay.o
-    0x08003838   0x08003838   0x00000018   Code   RO          372    i.fputc             usart.o
-    0x08003850   0x08003850   0x00000010   Code   RO         3705    i.initRingBuffer    tjc_usart_hmi.o
-    0x08003860   0x08003860   0x0000026c   Code   RO           18    i.main              main.o
-    0x08003acc   0x08003acc   0x00000030   Code   RO         3715    i.write1ByteToRingBuffer  tjc_usart_hmi.o
-    0x08003afc   0x08003afc   0x00000008   Data   RO         1411    .constdata          stm32f4xx_hal_dma.o
-    0x08003b04   0x08003b04   0x00000010   Data   RO         3425    .constdata          system_stm32f4xx.o
-    0x08003b14   0x08003b14   0x00000008   Data   RO         3426    .constdata          system_stm32f4xx.o
-    0x08003b1c   0x08003b1c   0x00000020   Data   RO         4160    Region$$Table       anon$$obj.o
+    0x08003838   0x08003838   0x00000034   Code   RO         3463    i.delay_us          delay.o
+    0x0800386c   0x0800386c   0x00000018   Code   RO          372    i.fputc             usart.o
+    0x08003884   0x08003884   0x00000010   Code   RO         3705    i.initRingBuffer    tjc_usart_hmi.o
+    0x08003894   0x08003894   0x00000228   Code   RO           18    i.main              main.o
+    0x08003abc   0x08003abc   0x00000030   Code   RO         3715    i.write1ByteToRingBuffer  tjc_usart_hmi.o
+    0x08003aec   0x08003aec   0x00000008   Data   RO         1411    .constdata          stm32f4xx_hal_dma.o
+    0x08003af4   0x08003af4   0x00000010   Data   RO         3425    .constdata          system_stm32f4xx.o
+    0x08003b04   0x08003b04   0x00000008   Data   RO         3426    .constdata          system_stm32f4xx.o
+    0x08003b0c   0x08003b0c   0x00000020   Data   RO         4160    Region$$Table       anon$$obj.o
 
 
-    Execution Region RW_IRAM1 (Exec base: 0x20000000, Load base: 0x08003b3c, Size: 0x000008c0, Max: 0x0001c000, ABSOLUTE)
+    Execution Region RW_IRAM1 (Exec base: 0x20000000, Load base: 0x08003b2c, Size: 0x000008c0, Max: 0x0001c000, ABSOLUTE)
 
     Exec Addr    Load Addr    Size         Type   Attr      Idx    E Section Name        Object
 
-    0x20000000   0x08003b3c   0x0000000c   Data   RW           20    .data               main.o
-    0x2000000c   0x08003b48   0x0000000c   Data   RW         1856    .data               stm32f4xx_hal.o
-    0x20000018   0x08003b54   0x00000004   Data   RW         3427    .data               system_stm32f4xx.o
-    0x2000001c   0x08003b58   0x00000004   Data   RW         3464    .data               delay.o
-    0x20000020   0x08003b5c   0x00000010   Data   RW         3561    .data               ad9959.o
-    0x20000030   0x08003b6c   0x00000001   Data   RW         3717    .data               tjc_usart_hmi.o
-    0x20000031   0x08003b6d   0x00000003   PAD
-    0x20000034   0x08003b70   0x00000004   Data   RW         4138    .data               mc_w.l(stdout.o)
+    0x20000000   0x08003b2c   0x0000000c   Data   RW           20    .data               main.o
+    0x2000000c   0x08003b38   0x0000000c   Data   RW         1856    .data               stm32f4xx_hal.o
+    0x20000018   0x08003b44   0x00000004   Data   RW         3427    .data               system_stm32f4xx.o
+    0x2000001c   0x08003b48   0x00000004   Data   RW         3464    .data               delay.o
+    0x20000020   0x08003b4c   0x00000010   Data   RW         3561    .data               ad9959.o
+    0x20000030   0x08003b5c   0x00000001   Data   RW         3717    .data               tjc_usart_hmi.o
+    0x20000031   0x08003b5d   0x00000003   PAD
+    0x20000034   0x08003b60   0x00000004   Data   RW         4138    .data               mc_w.l(stdout.o)
     0x20000038        -       0x00000064   Zero   RW           19    .bss                main.o
     0x2000009c        -       0x00000150   Zero   RW          257    .bss                adc.o
     0x200001ec        -       0x00000048   Zero   RW          328    .bss                tim.o
     0x20000234        -       0x00000090   Zero   RW          373    .bss                usart.o
     0x200002c4        -       0x000001fa   Zero   RW         3716    .bss                tjc_usart_hmi.o
-    0x200004be   0x08003b74   0x00000002   PAD
+    0x200004be   0x08003b64   0x00000002   PAD
     0x200004c0        -       0x00000400   Zero   RW            1    STACK               startup_stm32f407xx.o
 
 
-    Execution Region RW_IRAM2 (Exec base: 0x2001c000, Load base: 0x08003b74, Size: 0x00000000, Max: 0x00004000, ABSOLUTE)
+    Execution Region RW_IRAM2 (Exec base: 0x2001c000, Load base: 0x08003b64, Size: 0x00000000, Max: 0x00004000, ABSOLUTE)
 
     **** No section assigned to this execution region ****
 
@@ -2207,10 +2209,10 @@ Image component sizes
 
        704         60          0         16          0       8626   ad9959.o
        476         44          0          0        336       2678   adc.o
-        20          4          0          4          0       3205   delay.o
+        72          8          0          4          0       3844   delay.o
         60          4          0          0          0        814   dma.o
        376         24          0          0          0       1183   gpio.o
-      1060        272          0         12        100     710893   main.o
+       992        248          0         12        100     710869   main.o
         36          8        392          0       1024        852   startup_stm32f407xx.o
        180         28          0         12          0       9497   stm32f4xx_hal.o
       1504         66          0          0          0     715937   stm32f4xx_hal_adc.o
@@ -2230,7 +2232,7 @@ Image component sizes
        324         38          0          0        144       3103   usart.o
 
     ----------------------------------------------------------------------
-     10938        912        456         52       2184    1542564   Object Totals
+     10922        892        456         52       2184    1543179   Object Totals
          0          0         32          0          0          0   (incl. Generated)
         20          0          0          3          2          0   (incl. Padding)
 
@@ -2288,15 +2290,15 @@ Image component sizes
 
       Code (inc. data)   RO Data    RW Data    ZI Data      Debug   
 
-     14708       1018        456         56       2184    1533104   Grand Totals
-     14708       1018        456         56       2184    1533104   ELF Image Totals
-     14708       1018        456         56          0          0   ROM Totals
+     14692        998        456         56       2184    1533619   Grand Totals
+     14692        998        456         56       2184    1533619   ELF Image Totals
+     14692        998        456         56          0          0   ROM Totals
 
 ==============================================================================
 
-    Total RO  Size (Code + RO Data)                15164 (  14.81kB)
+    Total RO  Size (Code + RO Data)                15148 (  14.79kB)
     Total RW  Size (RW Data + ZI Data)              2240 (   2.19kB)
-    Total ROM Size (Code + RO Data + RW Data)      15220 (  14.86kB)
+    Total ROM Size (Code + RO Data + RW Data)      15204 (  14.85kB)
 
 ==============================================================================
 

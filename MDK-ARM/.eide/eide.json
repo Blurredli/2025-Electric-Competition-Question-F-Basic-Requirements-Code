@@ -329,7 +329,7 @@
         "proType": "SWD",
         "resetMode": "SWrst",
         "runAfterProgram": true,
-        "speed": 4000,
+        "speed": "4000",
         "address": "0x8000000",
         "elFile": "None",
         "optionBytes": ".eide/dds.st.option.bytes.ini",
