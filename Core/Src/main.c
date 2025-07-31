@@ -34,8 +34,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "delay.h"
-#include <math.h>      // æä¾› fabsf, roundf, fmaxf ç­‰æ•°å­¦å‡½æ•°
-#include <stdlib.h>    // æä¾› abs (æ•´å‹)
+#include <math.h>      // Ìá¹© fabsf, roundf, fmaxf µÈÊıÑ§º¯Êı
+#include <stdlib.h>    // Ìá¹© abs (ÕûĞÍ)
 #include "RDA5807M.h"
 /* USER CODE END Includes */
 
@@ -44,16 +44,16 @@
 #define FRAME_LENGTH 8
 #define DETECT_BUF_LEN 25
 
-#define F_START    88000000UL   // èµ·å§‹ RF é¢‘ç‡ 88 MHz
-#define F_END      108000000UL  // ç»“æŸ RF é¢‘ç‡ 108 MHz
-#define F_STEP     100000UL     // æœç´¢æ­¥è¿› 100 kHz
+#define F_START    88000000UL   // ÆğÊ¼ RF ÆµÂÊ 88 MHz
+#define F_END      108000000UL  // ½áÊø RF ÆµÂÊ 108 MHz
+#define F_STEP     100000UL     // ËÑË÷²½½ø 100 kHz
 
-// DDS é€šé“å®šä¹‰
-#define DDS_CH_FM       CH0            // AD9959 é€šé“ 0 ç”¨äº FM LO
-#define DDS_CH_AM       CH1            // AD9959 é€šé“ 1 ç”¨äº AM LO
-#define DDS_AMP         1023         // æœ€å¤§å¹…åº¦å€¼ï¼ˆ10-bitï¼‰
-#define DDS_PHASE       0            // ç›¸ä½æ ¡æ­£å€¼ (0)
-#define DETECT_THRESHOLD 1.7f        // æ£€æµ‹é˜ˆå€¼ï¼š<1.7V è¡¨ç¤ºæˆåŠŸè§£è°ƒï¼Œæœªè§£è°ƒé»˜è®¤ 3.3V
+// DDS Í¨µÀ¶¨Òå
+#define DDS_CH_FM       CH0            // AD9959 Í¨µÀ 0 ÓÃÓÚ FM LO
+#define DDS_CH_AM       CH1            // AD9959 Í¨µÀ 1 ÓÃÓÚ AM LO
+#define DDS_AMP         1023         // ×î´ó·ù¶ÈÖµ£¨10-bit£©
+#define DDS_PHASE       0            // ÏàÎ»Ğ£ÕıÖµ (0)
+#define DETECT_THRESHOLD 1.7f        // ¼ì²âãĞÖµ£º<1.7V ±íÊ¾³É¹¦½âµ÷£¬Î´½âµ÷Ä¬ÈÏ 3.3V
 
 /* USER CODE END PTD */
 
@@ -73,9 +73,9 @@
 volatile uint16_t detect_buf1[DETECT_BUF_LEN];
 volatile uint16_t detect_buf2[DETECT_BUF_LEN];
 /* 
-DetectConvEnd1ç”¨æ¥æ£€æµ‹ADCæ˜¯å¦é‡‡é›†å®Œæ¯•
-0ï¼šæ²¡æœ‰é‡‡é›†å®Œæ¯•
-1ï¼šé‡‡é›†å®Œæ¯•ï¼Œåœ¨stm32f1xx_ité‡Œçš„DMAå®Œæˆä¸­æ–­è¿›è¡Œä¿®æ”¹
+DetectConvEnd1ÓÃÀ´¼ì²âADCÊÇ·ñ²É¼¯Íê±Ï
+0£ºÃ»ÓĞ²É¼¯Íê±Ï
+1£º²É¼¯Íê±Ï£¬ÔÚstm32f1xx_itÀïµÄDMAÍê³ÉÖĞ¶Ï½øĞĞĞŞ¸Ä
  */
 volatile uint8_t  DetectConvEnd1 = 0;
 volatile uint8_t  DetectConvEnd2 = 0;
@@ -89,16 +89,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if(GPIO_Pin == KEY2_Pin)
     {
-        // ç®€å•çš„æ¶ˆæŠ–å¤„ç†
+        // ¼òµ¥µÄÏû¶¶´¦Àí
         static uint32_t last_time = 0;
         uint32_t current_time = HAL_GetTick();
         
-        if((current_time - last_time) > 50) // 50msæ¶ˆæŠ–
+        if((current_time - last_time) > 50) // 50msÏû¶¶
         {
-            // ç¡®è®¤æŒ‰é”®çŠ¶æ€
+            // È·ÈÏ°´¼ü×´Ì¬
             if(HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin) == GPIO_PIN_RESET)
             {
-                // æŒ‰é”®æŒ‰ä¸‹å¤„ç†
+                // °´¼ü°´ÏÂ´¦Àí
 //                printf("Button pressed!\n");
                 // m++;
                 
@@ -108,16 +108,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     }
         if(GPIO_Pin == KEY0_Pin)
     {
-        // ç®€å•çš„æ¶ˆæŠ–å¤„ç†
+        // ¼òµ¥µÄÏû¶¶´¦Àí
         static uint32_t last_time = 0;
         uint32_t current_time = HAL_GetTick();
         
-        if((current_time - last_time) > 50) // 50msæ¶ˆæŠ–
+        if((current_time - last_time) > 50) // 50msÏû¶¶
         {
-            // ç¡®è®¤æŒ‰é”®çŠ¶æ€
+            // È·ÈÏ°´¼ü×´Ì¬
             if(HAL_GPIO_ReadPin(KEY0_GPIO_Port, KEY0_Pin) == GPIO_PIN_RESET)
             {
-                // æŒ‰é”®æŒ‰ä¸‹å¤„ç†
+                // °´¼ü°´ÏÂ´¦Àí
 //                printf("Button pressed!\n");
                 // m--;
                 
@@ -128,7 +128,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 }
 
 /**
- * @brief é€šè¿‡æŒ‡å®š DDS é€šé“è¾“å‡ºæ­£å¼¦æ³¢å¹¶ç­‰å¾…ç¨³å®š
+ * @brief Í¨¹ıÖ¸¶¨ DDS Í¨µÀÊä³öÕıÏÒ²¨²¢µÈ´ıÎÈ¶¨
  */
 static void DDS_Output_Channel(uint8_t ch, uint32_t freq)
 {
@@ -140,7 +140,7 @@ static void DDS_Output_Channel(uint8_t ch, uint32_t freq)
 }
 
 /**
- * @brief åŒæ—¶é…ç½®ä¸¤é€šé“ DDS è¾“å‡º
+ * @brief Í¬Ê±ÅäÖÃÁ½Í¨µÀ DDS Êä³ö
  */
 static void DDS_Output_Two(uint32_t lo_fm, uint32_t lo_am)
 {
@@ -149,30 +149,30 @@ static void DDS_Output_Two(uint32_t lo_fm, uint32_t lo_am)
 }
 
 /**
- * @brief åŒæ—¶ä½¿ç”¨ TIM3 è§¦å‘ ADC1/ADC2 + DMA é‡‡é›†ä¸¤è·¯æ£€æµ‹ç”µå‹
- * @param[out] v_fm è¾“å‡º FM é€šé“å¹³å‡ç”µå‹ (V)
- * @param[out] v_am è¾“å‡º AM é€šé“å¹³å‡ç”µå‹ (V)
+ * @brief Í¬Ê±Ê¹ÓÃ TIM3 ´¥·¢ ADC1/ADC2 + DMA ²É¼¯Á½Â·¼ì²âµçÑ¹
+ * @param[out] v_fm Êä³ö FM Í¨µÀÆ½¾ùµçÑ¹ (V)
+ * @param[out] v_am Êä³ö AM Í¨µÀÆ½¾ùµçÑ¹ (V)
  */
 static void Compute_Dual_Voltage(float *v_fm, float *v_am)
 {
     DetectConvEnd1 = DetectConvEnd2 = 0;
-    // å¯åŠ¨ DMA
+    // Æô¶¯ DMA
     HAL_ADC_Start_DMA(&hadc1, (uint32_t*)detect_buf1, DETECT_BUF_LEN);
     HAL_ADC_Start_DMA(&hadc2, (uint32_t*)detect_buf2, DETECT_BUF_LEN);
-    // å¯åŠ¨ TIM3 è§¦å‘ä¸¤è·¯ ADC
+    // Æô¶¯ TIM3 ´¥·¢Á½Â· ADC
     HAL_TIM_Base_Start(&htim3);
-    // ç­‰å¾…ä¸¤è·¯å®Œæˆ
+    // µÈ´ıÁ½Â·Íê³É
     while (!(DetectConvEnd1 && DetectConvEnd2));
-    // åœæ­¢è§¦å‘å’Œ DMA
+    // Í£Ö¹´¥·¢ºÍ DMA
     // HAL_TIM_Base_Stop(&htim3);
     // HAL_ADC_Stop_DMA(&hadc1);
     // HAL_ADC_Stop_DMA(&hadc2);
 
-    // è®¡ç®— FM å¹³å‡ç”µå‹
+    // ¼ÆËã FM Æ½¾ùµçÑ¹
     uint32_t sum1 = 0;
     for (uint16_t i = 0; i < DETECT_BUF_LEN; i++) sum1 += detect_buf1[i];
     *v_fm = ((float)sum1 / DETECT_BUF_LEN) * (3.3f / 4095.0f);
-    // è®¡ç®— AM å¹³å‡ç”µå‹
+    // ¼ÆËã AM Æ½¾ùµçÑ¹
     uint32_t sum2 = 0;
     for (uint16_t i = 0; i < DETECT_BUF_LEN; i++) sum2 += detect_buf2[i];
     *v_am = ((float)sum2 / DETECT_BUF_LEN) * (3.3f / 4095.0f);
@@ -180,22 +180,28 @@ static void Compute_Dual_Voltage(float *v_fm, float *v_am)
 
 uint32_t SearchFMStations(void)
 {
-    printf("å¼€å§‹æœç´¢FMç”µå°...\r\n");
+    printf("¿ªÊ¼ËÑË÷FMµçÌ¨...\r\n");
     
-    // ä½¿ç”¨ä¼˜åŒ–æœç´¢ç®—æ³•æ‰¾åˆ°æœ€ä½³é¢‘ç‡                  M  10KHz
-    uint32_t best_freq = RDA5807M_Advanced_Search(8800, 10800, 25);    // 88.00MHz - 108.00MHz, æœ€å°ä¿¡å·å¼ºåº¦25
+    // Ê¹ÓÃÓÅ»¯ËÑË÷Ëã·¨ÕÒµ½×î¼ÑÆµÂÊ                  M  10KHz
+    uint32_t best_freq = RDA5807M_Advanced_Search(8800, 10800, 25);    // 88.00MHz - 108.00MHz, ×îĞ¡ĞÅºÅÇ¿¶È25
     
     if (best_freq > 0)
-    {// best_freqçš„å•ä½æ˜¯0.01 MHzï¼ˆå³10 kHzï¼‰ï¼Œ
+    {// best_freqµÄµ¥Î»ÊÇ0.01 MHz£¨¼´10 kHz£©£¬
         uint8_t signal = RDA5807M_Read_Signal_Intensity();
-        printf("æ‰¾åˆ°æœ€ä½³ç”µå°: %d.%d MHz, ä¿¡å·å¼ºåº¦: %d\r\n", 
-               best_freq/100, best_freq%100, signal);
-        DDS_Output_Channel(DDS_CH_AM, best_freq * 10000); // è”åŠ¨DDSè¾“å‡ºAMé€šé“ï¼Œå•ä½Hz
+        printf("ÕÒµ½×î¼ÑµçÌ¨: %d.%dMHz, ĞÅºÅÇ¿¶È:%d\r\n", best_freq/100, best_freq%100, signal);
+        
+        // ¼ÆËãIFÆµÂÊ: best_freq * 10000(Hz) - 455000(Hz) = best_freq * 10 - 455(kHz)
+        uint32_t if_freq = best_freq * 10000 - 455000; // µ¥Î»Hz£¬455kHzÖĞÆµ
+        
+        // Êä³öAMÖĞÆµµ½DDS
+        DDS_Output_Channel(DDS_CH_AM, if_freq);
+        printf("Êä³öAMÖĞÆµ: %d.%03d MHz\r\n", if_freq/1000000, (if_freq%1000000)/1000);
+        
         return best_freq;
     }
     else
     {
-        printf("æœªæ‰¾åˆ°æœ‰æ•ˆç”µå°\r\n");
+        printf("Î´ÕÒµ½ÓĞĞ§µçÌ¨\r\n");
         return 0;
     }
 }
@@ -241,21 +247,21 @@ int main(void)
   MX_ADC2_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  delay_init(168);                            /* å»¶æ—¶åˆå§‹åŒ– */
+  delay_init(168);                            /* ÑÓÊ±³õÊ¼»¯ */
   HAL_Delay(100); 
   AD9959_Init();
   ADF4351Init();
-  RDA5807M_init();    // åˆå§‹åŒ– RDA5807M
-  initRingBuffer();		//åˆå§‹åŒ–ç¯å½¢ç¼“å†²åŒº
-  HAL_UART_Receive_IT(&TJC_UART, RxBuffer, 1);	//æ‰“å¼€ä¸²å£æ¥æ”¶ä¸­æ–­
+  RDA5807M_init();    // ³õÊ¼»¯ RDA5807M
+  initRingBuffer();		//³õÊ¼»¯»·ĞÎ»º³åÇø
+  HAL_UART_Receive_IT(&TJC_UART, RxBuffer, 1);	//´ò¿ª´®¿Ú½ÓÊÕÖĞ¶Ï
 
   // char str[100];
   // uint32_t nowtime = HAL_GetTick();
-  // uint32_t last_m = 0xFFFFFFFF;  // åˆå§‹åŒ–ä¸ºä¸€ä¸ªä¸å¯èƒ½çš„å€¼
+  // uint32_t last_m = 0xFFFFFFFF;  // ³õÊ¼»¯ÎªÒ»¸ö²»¿ÉÄÜµÄÖµ
   HAL_Delay(500);
   RDA5807M_Set_Volume(10);
-  uint8_t found = 0;        // è¡¨ç¤ºæ˜¯å¦å·²ç»é”é¢‘
-  uint32_t locked_rf = 0;   // è®°å½•é”å®šçš„RFé¢‘ç‡
+  uint8_t found = 0;        // ±íÊ¾ÊÇ·ñÒÑ¾­ËøÆµ
+  uint32_t locked_rf = 0;   // ¼ÇÂ¼Ëø¶¨µÄRFÆµÂÊ
   float v_fm, v_am;
   /* USER CODE END 2 */
 
@@ -263,6 +269,84 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+      // Î´ËøÆµ×´Ì¬£¬ĞèÒª½øĞĞÆµÂÊËÑË÷
+    if (!found) 
+    {
+        // µ÷ÓÃSearchFMStationsËÑË÷×î¼ÑFMÆµÂÊ
+        uint32_t best_freq = SearchFMStations();
+        
+        if (best_freq > 0) 
+        {
+            // ÕÒµ½ÓĞĞ§ÆµÂÊ£¬±ê¼ÇÎªÒÑËøÆµ
+            found = 1;
+            locked_rf = best_freq;
+            
+            // ´òÓ¡ËøÆµĞÅÏ¢
+            printf("ËøÆµ³É¹¦: %d.%d MHz\r\n", best_freq/100, best_freq%100);
+            
+            // ÉèÖÃ×´Ì¬LEDÖ¸Ê¾µÆ£¨µÍµçÆ½µãÁÁ£©
+            HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
+        }
+        else 
+        {
+            // Î´ÕÒµ½ÓĞĞ§ÆµÂÊ£¬µÈ´ıÒ»¶ÎÊ±¼äºóÖØÊÔ
+            // Ï¨ÃğLED£¨¸ßµçÆ½Ï¨Ãğ£©
+            HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_SET);
+            HAL_Delay(500);
+        }
+    }
+    // ËøÆµ×´Ì¬£¬ĞèÒª¼à¿ØĞÅºÅÖÊÁ¿
+    else 
+    {
+        // Ã¿500ms¼ì²âÒ»´ÎĞÅºÅÖÊÁ¿
+        static uint32_t last_check_time = 0;
+        uint32_t current_time = HAL_GetTick();
+        
+        if ((current_time - last_check_time) > 500) 
+        {
+            last_check_time = current_time;
+            
+            // »ñÈ¡AM/FM½âµ÷µçÑ¹
+            Compute_Dual_Voltage(&v_fm, &v_am);
+            
+            // ¼ì²éRDA5807ÊÇ·ñ»¹ÄÜÊ¶±ğÎªµçÌ¨
+            uint8_t is_station = RDA5807M_Radio_Instructions();
+            uint8_t signal_strength = RDA5807M_Read_Signal_Intensity();
+            
+            // ÅĞ¶ÏĞÅºÅÊÇ·ñ¶ªÊ§£º
+            // 1. AM½âµ÷¼ì²â£ºv_amĞ¡ÓÚ0.6V±íÊ¾AM½âµ÷³É¹¦
+            // 2. FM¼ì²â£ºRDA5807²»Ê¶±ğÎªµçÌ¨»òĞÅºÅÇ¿¶È¹ıµÍ
+            uint8_t am_demod_ok = (v_am < 0.6f); // AM½âµ÷³É¹¦ÅĞ¶ÏãĞÖµ
+            uint8_t fm_signal_lost = (!is_station || signal_strength < 20);
+            
+            if (v_am > 1.6f && fm_signal_lost) // AM½âµ÷Ê§°Ü»òFMĞÅºÅ¶ªÊ§
+            {
+                printf("ĞÅºÅ¶ªÊ§ AMµçÑ¹=%.2f(Ğè<0.6V), FMĞÅºÅÇ¿¶È=%d(Ğè>20), µçÌ¨×´Ì¬=%d\r\n", 
+                       v_am, signal_strength, is_station);
+                
+                // ½âËø²¢¿ªÊ¼ĞÂÒ»ÂÖËÑË÷
+                found = 0;
+                locked_rf = 0;
+                // Ï¨ÃğLED£¨¸ßµçÆ½Ï¨Ãğ£©
+                HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_SET);
+            }
+            else 
+            {
+                // ĞÅºÅÈÔÈ»ÓĞĞ§£¬ÉÁË¸LEDÖ¸Ê¾Õı³£¹¤×÷
+                HAL_GPIO_TogglePin(LED_FM_GPIO_Port, LED_FM_Pin);
+                
+                // Ã¿5ÃëÊä³öÒ»´Îµ±Ç°×´Ì¬ĞÅÏ¢
+                static uint8_t report_counter = 0;
+                if (++report_counter >= 10) 
+                {
+                    report_counter = 0;
+                    printf("ËøÆµÎÈ¶¨: ÆµÂÊ=%d.%d MHz, ĞÅºÅÇ¿¶È=%d, µçÑ¹FM=%.2f AM=%.2f\r\n", 
+                           locked_rf/100, locked_rf%100, signal_strength, v_fm, v_am);
+                }
+            }
+        }
+    }
+    
       // for (float rf = 88; rf <= 108; rf += 0.1)
       // {
       //       ADF4351WriteFreq(rf);
@@ -272,25 +356,25 @@ int main(void)
     //  Compute_Dual_Voltage(&v_fm, &v_am);
     //  if(v_fm > 1.7f && v_am > 1.7f)
     //  {
-    //     found = 0; // å¦‚æœä¸¤è·¯ç”µå‹éƒ½å¤§äºé˜ˆå€¼ï¼Œè¡¨ç¤ºæœªè§£è°ƒæˆåŠŸ
+    //     found = 0; // Èç¹ûÁ½Â·µçÑ¹¶¼´óÓÚãĞÖµ£¬±íÊ¾Î´½âµ÷³É¹¦
     //     printf("Signal lost, re-scanning...\r\n");
     //  }
     //    if (!found)
     //    {
     //      for (uint32_t rf = F_START; rf <= F_END; rf += F_STEP) {
-    //          // è®¡ç®—ä¸­é¢‘ LO
+    //          // ¼ÆËãÖĞÆµ LO
     //          uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
     //          uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
     //          DDS_Output_Two(lo_fm, lo_am);
     //          // printf("FM: %d Hz, AM: %d Hz\r\n", lo_fm, lo_am);
     //          Compute_Dual_Voltage(&v_fm, &v_am);
 
-    //          // ä»»æ„ä¸€è·¯ç”µå‹ < 1.7f è¡¨ç¤ºè§£è°ƒæˆåŠŸï¼Œåœæ­¢æ‰«é¢‘
+    //          // ÈÎÒâÒ»Â·µçÑ¹ < 1.7f ±íÊ¾½âµ÷³É¹¦£¬Í£Ö¹É¨Æµ
     //          if (v_fm <= 1.7f || v_am <= 1.7f) 
     //          {
     //              found = 1;
     //              locked_rf = rf;
-    //              // åˆ¤æ–­è§£è°ƒæ¨¡å¼
+    //              // ÅĞ¶Ï½âµ÷Ä£Ê½
     //            if (v_fm <= 1.7f && v_am >= 1.7f) 
     //            {
     //                printf("FM Found at RF=%lu Hz, Vfm=%.3f V\r\n", rf, v_fm);
@@ -301,18 +385,18 @@ int main(void)
     //            {
     //                printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);
     //            }
-    //              // æ›´æ–° LED çŠ¶æ€
+    //              // ¸üĞÂ LED ×´Ì¬
     //              HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin,
     //                  (v_fm <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
     //              HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin,
     //                  (v_am <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
-    //              // ä¿æŒå½“å‰ LO è¾“å‡º
+    //              // ±£³Öµ±Ç° LO Êä³ö
     //              break;
     //          }
     //          // else{printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);}
     //      }
     //      if (!found) {
-    //          // å…¨é¢‘æ®µæ— ä»»æ„ä¸€è·¯<1.7Vï¼Œå•é¢‘è½½æ³¢æˆ–æ— ä¿¡å·
+    //          // È«Æµ¶ÎÎŞÈÎÒâÒ»Â·<1.7V£¬µ¥ÆµÔØ²¨»òÎŞĞÅºÅ
     //          printf("Single-tone detected (no FM/AM)\r\n");
     //          HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
     //          HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);

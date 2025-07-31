@@ -28,25 +28,17 @@ Project File Date:  07/31/2025
 *** Using Compiler 'V5.06 update 1 (build 61)', folder: 'D:\keil5\ARM\ARMCC\Bin'
 Build target 'DDS'
 compiling main.c...
-../Core/Src/main.c(279): warning:  #1035-D: single-precision operand implicitly converted to double-precision
-        for (float rf = 88; rf <= 108; rf += 0.1)
-../Core/Src/main.c(270): warning:  #177-D: variable "found" was declared but never referenced
-    uint8_t found = 0;        // Ë°?Á§?Êò?Âê?Â∑?Áª?Èî?È¢?
-../Core/Src/main.c(271): warning:  #177-D: variable "locked_rf" was declared but never referenced
-    uint32_t locked_rf = 0;   // ËÆ?ÂΩ?Èî?ÂÆ?Áö?RFÈ¢?Áé?
-../Core/Src/main.c(272): warning:  #177-D: variable "v_fm" was declared but never referenced
-    float v_fm, v_am;
-../Core/Src/main.c(272): warning:  #177-D: variable "v_am" was declared but never referenced
-    float v_fm, v_am;
-../Core/Src/main.c(144): warning:  #177-D: function "DDS_Output_Two" was declared but never referenced
+../Core/Src/main.c(191): warning:  #870-D: invalid multibyte character sequence
+          printf("Êâ?Âà?ÊúÄ‰Ω?Áî?Âè?: %d.%dMHz, ‰ø?Âè?Âº?Â∫?:%d\r\n", best_freq/100, best_freq%100, signal);
+../Core/Src/main.c(324): warning:  #870-D: invalid multibyte character sequence
+                  printf("‰ø?Âè?‰∏?Â§? AMÁî?Âé?=%.2f(ÈúÄ<0.6V), FM‰ø?Âè?Âº?Â∫?=%d(ÈúÄ>20), Áî?Âè?Áä?ÊÄ?=%d\r\n", 
+../Core/Src/main.c(145): warning:  #177-D: function "DDS_Output_Two" was declared but never referenced
   static void DDS_Output_Two(uint32_t lo_fm, uint32_t lo_am)
-../Core/Src/main.c(155): warning:  #177-D: function "Compute_Dual_Voltage" was declared but never referenced
-  static void Compute_Dual_Voltage(float *v_fm, float *v_am)
-../Core/Src/main.c: 7 warnings, 0 errors
+../Core/Src/main.c: 3 warnings, 0 errors
 linking...
-Program Size: Code=11564 RO-data=456 RW-data=52 ZI-data=2172  
+Program Size: Code=18460 RO-data=616 RW-data=64 ZI-data=2272  
 FromELF: creating hex file...
-"DDS\DDS.axf" - 0 Error(s), 7 Warning(s).
+"DDS\DDS.axf" - 0 Error(s), 3 Warning(s).
 
 <h2>Software Packages used:</h2>
 
