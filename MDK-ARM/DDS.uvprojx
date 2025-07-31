@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F407xx,ARM_MATH_CM4</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../HARDWARE/AD9959;../SYSTEM/delay;../SYSTEM/sys;../SYSTEM/usart;../HARDWARE/HMI;../HARDWARE/MCP41010;../Middlewares/ST/ARM/DSP/Inc</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../HARDWARE/AD9959;../SYSTEM/delay;../SYSTEM/sys;../SYSTEM/usart;../HARDWARE/HMI;../HARDWARE/MCP41010;../Middlewares/ST/ARM/DSP/Inc;../HARDWARE/ADF4351;..\HARDWARE\RDA5807M</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -1071,14 +1071,16 @@
               <FilePath>..\HARDWARE\HMI\tjc_usart_hmi.c</FilePath>
             </File>
             <File>
-              <FileName>MCP41010.c</FileName>
+              <FileName>ADF4351.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\HARDWARE\MCP41010\MCP41010.c</FilePath>
+              <FilePath>..\HARDWARE\ADF4351\ADF4351.c</FilePath>
+            </File>
+            <File>
+              <FileName>RDA5807M.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\RDA5807M\RDA5807M.c</FilePath>
             </File>
           </Files>
-        </Group>
-        <Group>
-          <GroupName>::CMSIS</GroupName>
         </Group>
         <Group>
           <GroupName>Middlewares/Library/DSP Library/DSP Library</GroupName>
@@ -1176,6 +1178,9 @@
               </FileOption>
             </File>
           </Files>
+        </Group>
+        <Group>
+          <GroupName>::CMSIS</GroupName>
         </Group>
       </Groups>
     </Target>

@@ -161,6 +161,9 @@
           },
           {
             "path": "../HARDWARE/MCP41010/MCP41010.c"
+          },
+          {
+            "path": "../HARDWARE/ADF4351/ADF4351.c"
           }
         ],
         "folders": []

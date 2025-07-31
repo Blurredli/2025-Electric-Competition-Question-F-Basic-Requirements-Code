@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include "arm_math.h"
 #include "AD9959.h"
+#include "ADF4351.h"
 #include "tjc_usart_hmi.h"
 #include <stdio.h>
 #include <string.h>
@@ -159,7 +160,7 @@ static void Compute_Dual_Voltage(float *v_fm, float *v_am)
     // 启动 TIM3 触发两路 ADC
     HAL_TIM_Base_Start(&htim3);
     // 等待两路完成
-    while (!(DetectConvEnd1 && DetectConvEnd2)) {}
+    while (!(DetectConvEnd1 && DetectConvEnd2));
     // 停止触发和 DMA
     // HAL_TIM_Base_Stop(&htim3);
     // HAL_ADC_Stop_DMA(&hadc1);
@@ -256,6 +257,7 @@ int main(void)
   delay_init(168);                            /* 延时初始化 */
   HAL_Delay(100); 
   AD9959_Init();
+  ADF4351Init();
   initRingBuffer();		//初始化环形缓冲区
   HAL_UART_Receive_IT(&TJC_UART, RxBuffer, 1);	//打开串口接收中断
 
@@ -272,57 +274,63 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      Compute_Dual_Voltage(&v_fm, &v_am);
-      if(v_fm > 1.7f && v_am > 1.7f)
+      for (uint32_t rf = 35; rf <= 108; rf += 1)
       {
-         found = 0; // 如果两路电压都大于阈值，表示未解调成功
-         printf("Signal lost, re-scanning...\r\n");
+            ADF4351WriteFreq(rf);
+            HAL_Delay(1000);
       }
-        if (!found)
-        {
-          for (uint32_t rf = F_START; rf <= F_END; rf += F_STEP) {
-              // 计算中频 LO
-              uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
-              uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
-              DDS_Output_Two(lo_fm, lo_am);
-              // printf("FM: %d Hz, AM: %d Hz\r\n", lo_fm, lo_am);
-              Compute_Dual_Voltage(&v_fm, &v_am);
+      
+//      Compute_Dual_Voltage(&v_fm, &v_am);
+//      if(v_fm > 1.7f && v_am > 1.7f)
+//      {
+//         found = 0; // 如果两路电压都大于阈值，表示未解调成功
+//         printf("Signal lost, re-scanning...\r\n");
+//      }
+//        if (!found)
+//        {
+//          for (uint32_t rf = F_START; rf <= F_END; rf += F_STEP) {
+//              // 计算中频 LO
+//              uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
+//              uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
+//              DDS_Output_Two(lo_fm, lo_am);
+//              // printf("FM: %d Hz, AM: %d Hz\r\n", lo_fm, lo_am);
+//              Compute_Dual_Voltage(&v_fm, &v_am);
 
-              // 任意一路电压 < 1.7f 表示解调成功，停止扫频
-              if (v_fm <= 1.7f || v_am <= 1.7f) 
-              {
-                  found = 1;
-                  locked_rf = rf;
-                  // 判断解调模式
-                if (v_fm <= 1.7f && v_am >= 1.7f) 
-                {
-                    printf("FM Found at RF=%lu Hz, Vfm=%.3f V\r\n", rf, v_fm);
-                } else if (v_am <= 1.7f && v_fm >= 1.7f) 
-                {
-                    printf("AM Found at RF=%lu Hz, Vam=%.3f V\r\n", rf, v_am);
-                } else 
-                {
-                    printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);
-                }
-                  // 更新 LED 状态
-                  HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin,
-                      (v_fm <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
-                  HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin,
-                      (v_am <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
-                  // 保持当前 LO 输出
-                  break;
-              }
-              // else{printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);}
-          }
-          if (!found) {
-              // 全频段无任意一路>1.6V，单频载波或无信号
-              printf("Single-tone detected (no FM/AM)\r\n");
-              HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
-          }
-        }
+//              // 任意一路电压 < 1.7f 表示解调成功，停止扫频
+//              if (v_fm <= 1.7f || v_am <= 1.7f) 
+//              {
+//                  found = 1;
+//                  locked_rf = rf;
+//                  // 判断解调模式
+//                if (v_fm <= 1.7f && v_am >= 1.7f) 
+//                {
+//                    printf("FM Found at RF=%lu Hz, Vfm=%.3f V\r\n", rf, v_fm);
+//                } else if (v_am <= 1.7f && v_fm >= 1.7f) 
+//                {
+//                    printf("AM Found at RF=%lu Hz, Vam=%.3f V\r\n", rf, v_am);
+//                } else 
+//                {
+//                    printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);
+//                }
+//                  // 更新 LED 状态
+//                  HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin,
+//                      (v_fm <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+//                  HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin,
+//                      (v_am <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+//                  // 保持当前 LO 输出
+//                  break;
+//              }
+//              // else{printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);}
+//          }
+//          if (!found) {
+//              // 全频段无任意一路<1.7V，单频载波或无信号
+//              printf("Single-tone detected (no FM/AM)\r\n");
+//              HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
+//              HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
+//          }
+//        }
 
-        HAL_Delay(5);
+//        HAL_Delay(5);
 
 
     /* USER CODE END WHILE */
