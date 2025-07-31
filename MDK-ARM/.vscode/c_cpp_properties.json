@@ -17,12 +17,12 @@
                 "f:\\diyici_shuqi_first_cubemx\\TJC_HMI_SAOPing\\SAOPING\\Middlewares\\ST\\ARM\\DSP\\Inc",
                 "f:\\diyici_shuqi_first_cubemx\\TJC_HMI_SAOPing\\SAOPING\\HARDWARE\\ADF4351",
                 "f:\\diyici_shuqi_first_cubemx\\TJC_HMI_SAOPing\\SAOPING\\HARDWARE\\RDA5807M",
+                "f:\\diyici_shuqi_first_cubemx\\TJC_HMI_SAOPing\\SAOPING\\HARDWARE\\si5351",
                 "D:\\keil5\\ARM\\ARMCC\\include",
                 "D:\\keil5\\ARM\\ARMCC\\include\\rw",
                 "f:\\diyici_shuqi_first_cubemx\\TJC_HMI_SAOPing\\SAOPING\\MDK-ARM",
                 "f:\\diyici_shuqi_first_cubemx\\TJC_HMI_SAOPing\\SAOPING\\Core\\Src",
-                "f:\\diyici_shuqi_first_cubemx\\TJC_HMI_SAOPing\\SAOPING\\Drivers\\STM32F4xx_HAL_Driver\\Src",
-                "f:\\diyici_shuqi_first_cubemx\\TJC_HMI_SAOPing\\SAOPING\\Middlewares\\ST\\ARM\\DSP\\Lib"
+                "f:\\diyici_shuqi_first_cubemx\\TJC_HMI_SAOPing\\SAOPING\\Drivers\\STM32F4xx_HAL_Driver\\Src"
             ],
             "defines": [
                 "USE_HAL_DRIVER",

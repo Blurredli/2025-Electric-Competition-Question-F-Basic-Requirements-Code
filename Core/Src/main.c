@@ -37,6 +37,7 @@
 #include <math.h>      // 提供 fabsf, roundf, fmaxf 等数学函数
 #include <stdlib.h>    // 提供 abs (整型)
 #include "RDA5807M.h"
+#include <si5351.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -250,10 +251,10 @@ int main(void)
   delay_init(168);                            /* 延时初始化 */
   HAL_Delay(100); 
   AD9959_Init();
-  ADF4351Init();
+  // ADF4351Init();
   RDA5807M_init();    // 初始化 RDA5807M
-  initRingBuffer();		//初始化环形缓冲区
-  HAL_UART_Receive_IT(&TJC_UART, RxBuffer, 1);	//打开串口接收中断
+  // initRingBuffer();		//初始化环形缓冲区
+  // HAL_UART_Receive_IT(&TJC_UART, RxBuffer, 1);	//打开串口接收中断
 
   // char str[100];
   // uint32_t nowtime = HAL_GetTick();
@@ -263,12 +264,16 @@ int main(void)
   uint8_t found = 0;        // 表示是否已经锁频
   uint32_t locked_rf = 0;   // 记录锁定的RF频率
   float v_fm, v_am;
+  const int32_t correction = 978;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+      	// si5351_Init(correction);
+        // si5351_SetupCLK0(88000000, SI5351_DRIVE_STRENGTH_4MA);
+        // si5351_EnableOutputs((1<<0));     // 使能CLK0，禁用CLK1和CLK2
       // 未锁频状态，需要进行频率搜索
     if (!found) 
     {
@@ -292,17 +297,17 @@ int main(void)
             // 未找到有效频率，等待一段时间后重试
             // 熄灭LED（高电平熄灭）
             HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_SET);
-            HAL_Delay(500);
+            HAL_Delay(100);
         }
     }
     // 锁频状态，需要监控信号质量
     else 
     {
-        // 每500ms检测一次信号质量
+        // 每100ms检测一次信号质量
         static uint32_t last_check_time = 0;
         uint32_t current_time = HAL_GetTick();
         
-        if ((current_time - last_check_time) > 500) 
+        if ((current_time - last_check_time) > 100) 
         {
             last_check_time = current_time;
             

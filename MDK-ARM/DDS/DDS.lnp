@@ -37,6 +37,7 @@
 "dds\tjc_usart_hmi.o"
 "dds\adf4351.o"
 "dds\rda5807m.o"
+"dds\si5351.o"
 "../Middlewares/ST/ARM/DSP/Lib/arm_cortexM4lf_math.lib"
 --library_type=microlib --strict --scatter "DDS\DDS.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols

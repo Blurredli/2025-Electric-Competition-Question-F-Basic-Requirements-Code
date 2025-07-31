@@ -7,7 +7,11 @@
     "settings": {
         "files.associations": {
             "rda5807m.h": "c",
-            "main.h": "c"
+            "main.h": "c",
+            "stm32f4xx_hal.h": "c",
+            "si5351.h": "c",
+            "stm32f4xx_hal_uart.h": "c",
+            "tjc_usart_hmi.h": "c"
         }
     },
     "extensions": {}

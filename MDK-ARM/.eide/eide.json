@@ -167,6 +167,9 @@
           },
           {
             "path": "../HARDWARE/RDA5807M/RDA5807M.c"
+          },
+          {
+            "path": "../HARDWARE/si5351/si5351.c"
           }
         ],
         "folders": []
@@ -372,7 +375,8 @@
           ".cmsis/include",
           "RTE/_DDS",
           "../HARDWARE/ADF4351",
-          "../HARDWARE/RDA5807M"
+          "../HARDWARE/RDA5807M",
+          "../HARDWARE/si5351"
         ],
         "libList": [],
         "defineList": [
