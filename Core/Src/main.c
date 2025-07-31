@@ -80,12 +80,35 @@ DetectConvEnd1用来检测ADC是否采集完毕
  */
 volatile uint8_t  DetectConvEnd1 = 0;
 volatile uint8_t  DetectConvEnd2 = 0;
+uint8_t found = 0;        // 表示是否已经锁频
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if(GPIO_Pin == KEY2_Pin)
+    {
+        // 简单的消抖处理
+        static uint32_t last_time = 0;
+        uint32_t current_time = HAL_GetTick();
+        
+        if((current_time - last_time) > 20) // 50ms消抖
+        {
+            // 确认按键状态
+            if(HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin) == GPIO_PIN_RESET)
+            {
+                // 按键按下处理
+                found = 0;
+            }
+        }
+        last_time = current_time;
+    }
+}
+
 /**
  * @brief 通过指定 DDS 通道输出正弦波并等待稳定
  */
@@ -95,7 +118,7 @@ static void DDS_Output_Channel(uint8_t ch, uint32_t freq)
     AD9959_Set_Amp(ch,   DDS_AMP);
     AD9959_Set_Phase(ch, DDS_PHASE);
     IO_Update();
-    delay_us(1000);
+    delay_us(100);
 }
 
 /**
@@ -123,9 +146,9 @@ static void Compute_Dual_Voltage(float *v_fm, float *v_am)
     // 等待两路完成
     while (!(DetectConvEnd1 && DetectConvEnd2));
     // 停止触发和 DMA
-    // HAL_TIM_Base_Stop(&htim3);
-    // HAL_ADC_Stop_DMA(&hadc1);
-    // HAL_ADC_Stop_DMA(&hadc2);
+    HAL_TIM_Base_Stop(&htim3);
+    HAL_ADC_Stop_DMA(&hadc1);
+    HAL_ADC_Stop_DMA(&hadc2);
 
     // 计算 FM 平均电压
     uint32_t sum1 = 0;
@@ -206,7 +229,7 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   delay_init(168);                            /* 延时初始化 */
-  HAL_Delay(100); 
+  HAL_Delay(50); 
   AD9959_Init();
   // ADF4351Init();
   // RDA5807M_init();    // 初始化 RDA5807M
@@ -216,12 +239,11 @@ int main(void)
   // char str[100];
   // uint32_t nowtime = HAL_GetTick();
   // uint32_t last_m = 0xFFFFFFFF;  // 初始化为一个不可能的值
-  HAL_Delay(500);
+  HAL_Delay(50);
   // RDA5807M_Set_Volume(10);
-  uint8_t found = 0;        // 表示是否已经锁频
   uint32_t locked_rf = 0;   // 记录锁定的RF频率
   float v_fm, v_am;
-  const int32_t correction = 978;
+  // const int32_t correction = 978;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -246,16 +268,16 @@ int main(void)
              Compute_Dual_Voltage(&v_fm, &v_am);
 
              // 任意一路电压 < 1.7f 表示解调成功，停止扫频
-             if (v_fm <= 1.7f || v_am <= 0.10f) 
+             if (v_fm <= 0.10f || v_am <= 0.10f) 
              {
                  found = 1;
                  locked_rf = rf;
                  // 判断解调模式
-               if (v_fm <= 1.7f && v_am >= 0.10f) 
+               if (v_fm <= 0.10f && v_am >= 0.10f) 
                {
                    printf("FM Found at RF=%lu Hz, FM=%lu Hz, Vfm=%.3f V\r\n", rf, (rf - 10700000UL), v_fm);
                } 
-               else if (v_am <= 0.10f && v_fm >= 1.7f) 
+               else if (v_am <= 0.10f && v_fm >= 0.10f) 
                {
                    printf("AM Found at RF=%lu Hz, AM=%lu Hz, Vam=%.3f V\r\n", rf, (rf - 455000UL), v_am);
                    // --- 精扫逻辑 ---
@@ -283,7 +305,7 @@ int main(void)
                }
                  // 更新 LED 状态
                  HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin,
-                     (v_fm <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+                     (v_fm <= 0.10f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
                  HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin,
                      (v_am <= 0.10f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
                  // 保持当前 LO 输出
