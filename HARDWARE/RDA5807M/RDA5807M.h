@@ -86,4 +86,6 @@ void RDA5807M_SetMutea(uint8_t Bool);
 void RDA5807M_Set_Output_Idle(uint8_t Bool);
 uint8_t RDA5807M_Read_Signal_Intensity(void);
 uint16_t RDA5807M_Read_ID(void);
+uint16_t RDA5807M_AutoSearch_FM(uint16_t start_freq, uint16_t end_freq, uint8_t threshold);
+uint16_t RDA5807M_Advanced_Search(uint16_t start_freq, uint16_t end_freq, uint8_t min_strength);
 #endif

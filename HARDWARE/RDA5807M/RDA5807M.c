@@ -666,3 +666,168 @@ void RDA5807M_Reast(void)
     RDA5807M_Write_Reg(0x02, 0x0002); //复位
     HAL_Delay(50);
 }
+/**
+ * @brief 自动搜索FM信号强度最大点（先200kHz粗扫，后100kHz精扫）
+ * @param start_freq: 起始频率(如8800，单位0.01MHz)
+ * @param end_freq: 结束频率(如10800，单位0.01MHz)
+ * @param threshold: 信号强度阈值(建议20~40)
+ * @return 返回最佳频率(单位0.01MHz)，未找到返回0
+ */
+uint16_t RDA5807M_AutoSearch_FM(uint16_t start_freq, uint16_t end_freq, uint8_t threshold)
+{
+    uint16_t best_freq = 0;
+    uint8_t max_signal = 0;
+    // 1. 200kHz步进粗扫
+    for(uint16_t freq = start_freq; freq <= end_freq; freq += 20) // 20=200kHz
+    {
+        RDA5807M_Set_Freq(freq);
+        HAL_Delay(10);
+        uint8_t sig = RDA5807M_Read_Signal_Intensity();
+        uint8_t is_station = RDA5807M_Radio_Instructions();
+        if(sig > max_signal && sig >= threshold && is_station)
+        {
+            max_signal = sig;
+            best_freq = freq;
+        }
+    }
+    if(best_freq == 0) return 0;
+    // 2. 100kHz步进精扫
+    uint16_t fine_start = (best_freq > 40) ? (best_freq - 40) : start_freq;
+    uint16_t fine_end = (best_freq + 40 < end_freq) ? (best_freq + 40) : end_freq;
+    max_signal = 0;
+    for(uint16_t freq = fine_start; freq <= fine_end; freq += 10) // 10=100kHz
+    {
+        RDA5807M_Set_Freq(freq);
+        HAL_Delay(15);
+        uint8_t sig = RDA5807M_Read_Signal_Intensity();
+        uint8_t is_station = RDA5807M_Radio_Instructions();
+        if(sig > max_signal && is_station)
+        {
+            max_signal = sig;
+            best_freq = freq;
+        }
+    }
+    RDA5807M_Set_Freq(best_freq);
+    return best_freq;
+}
+
+/**
+ * @brief 高级优化搜索 - 带动态阈值和快速锁定
+ * @param start_freq: 起始频率(以MHz为单位*100)
+ * @param end_freq: 结束频率(以MHz为单位*100)
+ * @param min_strength: 最小可接受的信号强度 (0-127)
+ * @return 找到的最佳频率点，如果没找到返回0
+ * @author 用户
+ * @date 2025-07-31
+ */
+uint16_t RDA5807M_Advanced_Search(uint16_t start_freq, uint16_t end_freq, uint8_t min_strength)
+{
+    #define MAX_CANDIDATES 10
+    // 候选频率点数组
+    struct {
+        uint16_t freq;
+        uint8_t strength;
+    } candidates[MAX_CANDIDATES] = {0};
+    uint8_t candidate_count = 0;
+    
+    // 第一阶段：快速粗扫描 (200kHz步进)
+    uint8_t max_signal_seen = 0;  // 扫描过程中看到的最大信号
+    
+    for (uint16_t freq = start_freq; freq <= end_freq; freq += 20)
+    {
+        RDA5807M_Set_Freq(freq);
+        HAL_Delay(5);  // 快速扫描时短暂延时
+        
+        uint8_t signal = RDA5807M_Read_Signal_Intensity();
+        if (signal > max_signal_seen) max_signal_seen = signal;
+        
+        // 只有信号强度超过最小阈值才考虑
+        if (signal >= min_strength)
+        {
+            // 存储候选频率点
+            if (candidate_count < MAX_CANDIDATES)
+            {
+                candidates[candidate_count].freq = freq;
+                candidates[candidate_count].strength = signal;
+                candidate_count++;
+            }
+            else
+            {
+                // 如果候选点已满，替换信号最弱的那个
+                uint8_t weakest_idx = 0;
+                for (uint8_t i = 1; i < MAX_CANDIDATES; i++)
+                {
+                    if (candidates[i].strength < candidates[weakest_idx].strength)
+                        weakest_idx = i;
+                }
+                
+                if (signal > candidates[weakest_idx].strength)
+                {
+                    candidates[weakest_idx].freq = freq;
+                    candidates[weakest_idx].strength = signal;
+                }
+            }
+        }
+    }
+    
+    // 如果没找到候选点，调整阈值重试一次
+    if (candidate_count == 0 && max_signal_seen > 0)
+    {
+        // 动态调整阈值为最大信号的70%
+        uint8_t adjusted_threshold = max_signal_seen * 0.7;
+        if (adjusted_threshold < min_strength)
+        {
+            // 重新扫描
+            for (uint16_t freq = start_freq; freq <= end_freq; freq += 20)
+            {
+                RDA5807M_Set_Freq(freq);
+                HAL_Delay(5);
+                
+                uint8_t signal = RDA5807M_Read_Signal_Intensity();
+                
+                if (signal >= adjusted_threshold && candidate_count < MAX_CANDIDATES)
+                {
+                    candidates[candidate_count].freq = freq;
+                    candidates[candidate_count].strength = signal;
+                    candidate_count++;
+                }
+            }
+        }
+    }
+    
+    // 如果仍然没找到候选点，返回0
+    if (candidate_count == 0)
+        return 0;
+    
+    // 第二阶段：在每个候选点周围精细搜索
+    uint16_t best_freq = 0;
+    uint8_t best_strength = 0;
+    
+    for (uint8_t i = 0; i < candidate_count; i++)
+    {
+        uint16_t center_freq = candidates[i].freq;
+        uint16_t fine_start = (center_freq > 20) ? (center_freq - 20) : start_freq;
+        uint16_t fine_end = (center_freq + 20 <= end_freq) ? (center_freq + 20) : end_freq;
+        
+        for (uint16_t freq = fine_start; freq <= fine_end; freq += 10)
+        {
+            RDA5807M_Set_Freq(freq);
+            HAL_Delay(15);  // 精细扫描稍微延长稳定时间
+            
+            uint8_t signal = RDA5807M_Read_Signal_Intensity();
+            uint8_t is_station = RDA5807M_Radio_Instructions();
+            
+            if (signal > best_strength && is_station)
+            {
+                best_strength = signal;
+                best_freq = freq;
+            }
+        }
+    }
+    
+    // 最后锁定到最佳频率
+    if (best_freq > 0)
+        RDA5807M_Set_Freq(best_freq);
+    
+    return best_freq;
+}
