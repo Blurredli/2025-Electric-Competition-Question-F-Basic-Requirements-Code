@@ -206,70 +206,6 @@ uint32_t SearchFMStations(void)
         return 0;
     }
 }
-
-// 智能扫频，自动寻找v_am最小的频率点
-static uint32_t DDS_Advanced_Search(uint32_t f_start, uint32_t f_end, uint32_t f_step, float *out_vam) {
-    #define MAX_CANDIDATES 8
-    typedef struct {
-        uint32_t freq;
-        float v_am;
-    } Candidate_t;
-    Candidate_t candidates[MAX_CANDIDATES] = {0};
-    uint8_t candidate_count = 0;
-    float v_fm, v_am;
-
-    // 粗扫阶段
-    for (uint32_t rf = f_start; rf <= f_end; rf += f_step) {
-        uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
-        uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
-        DDS_Output_Two(lo_fm, lo_am);
-        HAL_Delay(30);
-        Compute_Dual_Voltage(&v_fm, &v_am);
-        if (candidate_count < MAX_CANDIDATES) {
-            candidates[candidate_count].freq = rf;
-            candidates[candidate_count].v_am = v_am;
-            candidate_count++;
-        } else {
-            // 替换v_am最大的候选
-            uint8_t max_idx = 0;
-            for (uint8_t i = 1; i < MAX_CANDIDATES; i++)
-                if (candidates[i].v_am > candidates[max_idx].v_am)
-                    max_idx = i;
-            if (v_am < candidates[max_idx].v_am) {
-                candidates[max_idx].freq = rf;
-                candidates[max_idx].v_am = v_am;
-            }
-        }
-    }
-    // 精扫阶段
-    uint32_t best_freq = 0;
-    float best_vam = 100.0f;
-    for (uint8_t i = 0; i < candidate_count; i++) {
-        uint32_t center = candidates[i].freq;
-        uint32_t fine_start = (center > f_step*2) ? (center - f_step*2) : f_start;
-        uint32_t fine_end = (center + f_step*2 <= f_end) ? (center + f_step*2) : f_end;
-        for (uint32_t rf = fine_start; rf <= fine_end; rf += f_step/4) {
-            uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
-            uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
-            DDS_Output_Two(lo_fm, lo_am);
-            HAL_Delay(40);
-            Compute_Dual_Voltage(&v_fm, &v_am);
-            if (v_am < best_vam) {
-                best_vam = v_am;
-                best_freq = rf;
-            }
-        }
-    }
-    if (out_vam) *out_vam = best_vam;
-    // 输出最佳频率
-    if (best_freq > 0) {
-        uint32_t lo_fm = (best_freq > 10700000UL) ? (best_freq - 10700000UL) : 0;
-        uint32_t lo_am = (best_freq > 455000UL)   ? (best_freq - 455000UL)   : 0;
-        DDS_Output_Two(lo_fm, lo_am);
-        printf("[AM] Best RF=%lu Hz, Vam=%.3f V\r\n", best_freq, best_vam);
-    }
-    return best_freq;
-}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -335,6 +271,57 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+         Compute_Dual_Voltage(&v_fm, &v_am);
+     if(v_fm > 1.7f && v_am > 0.069f)
+     {
+        found = 0; // 如果两路电压都大于阈值，表示未解调成功
+        printf("Signal lost, re-scanning...\r\n");
+     }
+       if (!found)
+       {
+         for (uint32_t rf = F_START; rf <= F_END; rf += F_STEP) {
+             // 计算中频 LO
+             uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
+             uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
+             DDS_Output_Two(lo_fm, lo_am);
+             // printf("FM: %d Hz, AM: %d Hz\r\n", lo_fm, lo_am);
+             Compute_Dual_Voltage(&v_fm, &v_am);
+
+             // 任意一路电压 < 1.7f 表示解调成功，停止扫频
+             if (v_fm <= 1.7f || v_am <= 0.069f) 
+             {
+                 found = 1;
+                 locked_rf = rf;
+                 // 判断解调模式
+               if (v_fm <= 1.7f && v_am >= 0.069f) 
+               {
+                   printf("FM Found at RF=%lu Hz, FM=%lu Hz, Vfm=%.3f V\r\n", rf, (rf - 10700000UL), v_fm);
+               } else if (v_am <= 0.069f && v_fm >= 1.7f) 
+               {
+                   printf("AM Found at RF=%lu Hz, AM=%lu Hz, Vam=%.3f V\r\n", rf, (rf - 455000UL), v_am);
+               } else 
+               {
+                   printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);
+               }
+                 // 更新 LED 状态
+                 HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin,
+                     (v_fm <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+                 HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin,
+                     (v_am <= 0.069f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+                 // 保持当前 LO 输出
+                 break;
+             }
+             else{printf("RF=%lu Hz, Vfm=%.3f V, AM = %lu Hz Vam=%.3f V\r\n", rf, v_fm, (rf - 455000UL), v_am);}
+             HAL_Delay(250);
+         }
+         if (!found) {
+             // 全频段无任意一路<1.7V，单频载波或无信号
+             printf("Single-tone detected (no FM/AM)\r\n");
+             HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
+             HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
+         }
+       }
       	// si5351_Init(correction);
         // si5351_SetupCLK0(88000000, SI5351_DRIVE_STRENGTH_4MA);
         // si5351_EnableOutputs((1<<0));     // 使能CLK0，禁用CLK1和CLK2
@@ -424,28 +411,6 @@ int main(void)
       //       ADF4351WriteFreq(rf);
       //       HAL_Delay(500);
       // }
-      
-     Compute_Dual_Voltage(&v_fm, &v_am);
-     if(v_fm > 1.7f && v_am > 0.069f)
-     {
-        found = 0; // 如果两路电压都大于阈值，表示未解调成功
-        printf("Signal lost, re-scanning...\r\n");
-     }
-       if (!found)
-       {
-         float best_vam = 0.0f;
-         uint32_t best_rf = DDS_Advanced_Search(F_START, F_END, F_STEP, &best_vam);
-         if (best_rf > 0 && best_vam < 1.7f) {
-             found = 1;
-             locked_rf = best_rf;
-             printf("[AM] Lock at RF=%lu Hz, Vam=%.3f V\r\n", best_rf, best_vam);
-             HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
-         } else {
-             printf("Single-tone detected (no FM/AM)\r\n");
-             HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
-             HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
-         }
-       }
 
     /* USER CODE END WHILE */
 

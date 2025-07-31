@@ -1824,9 +1824,9 @@
       </Doc>
       <Doc>
         <Name>../Core/Src/main.c</Name>
-        <ColumnNumber>12</ColumnNumber>
-        <TopLine>16</TopLine>
-        <CurrentLine>20</CurrentLine>
+        <ColumnNumber>21</ColumnNumber>
+        <TopLine>34</TopLine>
+        <CurrentLine>39</CurrentLine>
         <Folding>1</Folding>
         <ContractedFolders></ContractedFolders>
         <PaneID>0</PaneID>
