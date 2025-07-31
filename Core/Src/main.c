@@ -274,10 +274,10 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      for (uint32_t rf = 35; rf <= 108; rf += 1)
+      for (float rf = 88; rf <= 108; rf += 0.1)
       {
             ADF4351WriteFreq(rf);
-            HAL_Delay(1000);
+            HAL_Delay(500);
       }
       
 //      Compute_Dual_Voltage(&v_fm, &v_am);
