@@ -55,3 +55,4 @@ dds\main.o: D:\keil5\ARM\ARMCC\Bin\..\include\stdio.h
 dds\main.o: ../SYSTEM/delay/delay.h
 dds\main.o: D:\keil5\ARM\ARMCC\Bin\..\include\stdlib.h
 dds\main.o: ../HARDWARE/RDA5807M/RDA5807M.h
+dds\main.o: ../HARDWARE/si5351/si5351.h

@@ -35,4 +35,4 @@ dds\si5351.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h
 dds\si5351.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h
 dds\si5351.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h
 dds\si5351.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
-dds\si5351.o: ..\HARDWARE\si5351\si5351.h
+dds\si5351.o: ../HARDWARE/si5351/si5351.h
