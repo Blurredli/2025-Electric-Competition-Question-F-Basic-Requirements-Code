@@ -15,7 +15,7 @@
     不用填写设备地址
 取消下方注释
 */
-// #define RDA5807_Hardware_I2C
+#define RDA5807_Hardware_I2C
 
 /*
 软件I2C模式

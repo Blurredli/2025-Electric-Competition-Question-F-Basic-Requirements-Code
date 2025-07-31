@@ -155,7 +155,7 @@ void RDA5807M_Write_Reg(uint8_t Address, uint16_t Data)
     Buf[0] = (Data & 0xff00) >> 8; //高位
     Buf[1] = Data & 0x00ff;        //低位
 #ifdef RDA5807_Hardware_I2C
-    HAL_I2C_Mem_Write(&RDA6807M_I2C_Handle, 0x22, Address, I2C_MEMADD_SIZE_8uint8_t, Buf, 2, 0xffff);
+    HAL_I2C_Mem_Write(&RDA6807M_I2C_Handle, 0x22, Address, I2C_MEMADD_SIZE_8BIT, Buf, 2, 0xffff);
 #endif
 #ifdef RDA5807_Software_I2C
     I2C_Start();
@@ -177,7 +177,7 @@ uint16_t RDA5807M_Read_Reg(uint8_t Address)
 {
     uint8_t Buf[2] = {0};
 #ifdef RDA5807_Hardware_I2C
-    HAL_I2C_Mem_Read(&RDA6807M_I2C_Handle, 0x22, Address, I2C_MEMADD_SIZE_8uint8_t, Buf, 2, 0xffff);
+    HAL_I2C_Mem_Read(&RDA6807M_I2C_Handle, 0x22, Address, I2C_MEMADD_SIZE_8BIT, Buf, 2, 0xffff);
 #endif
 #ifdef RDA5807_Software_I2C
     I2C_Start();
@@ -200,15 +200,35 @@ uint16_t RDA5807M_Read_Reg(uint8_t Address)
  */
 void RDA5807M_init(void)
 {
-    RDA5807M_Write_Reg(0x02, 0x0002); //复位
-    HAL_Delay(50);
-    RDA5807M_Write_Reg(0x02, 0xc001);
-    HAL_Delay(600);
-    RDA5807M_Write_Reg(0x03, 0x0018);
-    RDA5807M_Write_Reg(0x04, 0x0400);
-    RDA5807M_Write_Reg(0x05, 0x86ad);
-    RDA5807M_Write_Reg(0x06, 0x8000);
-    RDA5807M_Write_Reg(0x07, 0x5F1A);
+    // 0x02寄存器写0x0002，二进制: 0000 0000 0000 0010
+    // [1]=1: 软复位，其他位为0
+    RDA5807M_Write_Reg(0x02, 0x0002); // 复位芯片
+    HAL_Delay(50); // 等待复位完成
+
+    // 0x02寄存器写0xC001，二进制: 1100 0000 0  001    0001
+    // [15]=1: 使能， [14]=1: 取消静音， [0]=1: 使能新配置，其他位为0
+    RDA5807M_Write_Reg(0x02, 0xc011); // 退出复位，启动芯片，取消静音，应用配置
+    HAL_Delay(600); // 等待芯片启动稳定
+
+    // 0x03寄存器写0x0018，二进制: 0000 0000 0001 1000
+    // [4]=1: 调谐使能， [3:2]=00: 频段选择（87-108MHz），[1:0]=00: 频率间隔100kHz
+    RDA5807M_Write_Reg(0x03, 0x0018); // 设置调谐、频段、间隔
+
+    // 0x04寄存器写0x0400，二进制: 0000 0100 0000 0000
+    // [10]=1: 允许音频输出，其他位为0
+    RDA5807M_Write_Reg(0x04, 0x0400); // 设置音频输出
+
+    // 0x05寄存器写0x86AD，二进制: 1000 0110 1010 1101
+    // [15]=1: 允许低噪声， [13]=1: 允许高低电平切换， [11]=1: 允许软静音， [7:4]=1010: 软静音阈值， [3:0]=1101: 音量13
+    RDA5807M_Write_Reg(0x05, 0x86ad); // 设置音量、静音等参数
+
+    // 0x06寄存器写0x8000，二进制: 1000 0000 0000 0000
+    // [15]=1: 允许RDS，其他位为0
+    RDA5807M_Write_Reg(0x06, 0x8000); // 设置RDS等系统参数
+
+    // 0x07寄存器写0x5F1A，二进制: 0101 1111 0001 1010
+    // [13]=1: 允许高低电平切换， [12]=1: 允许软静音， [11]=1: 允许RDS， [9]=1: 允许频段扩展， [4]=1: 允许高低电平切换， [3:1]=101: 其他控制
+    RDA5807M_Write_Reg(0x07, 0x5F1A); // 设置其他控制参数
 }
 /**
  * @brief 将频率转为信道值

@@ -6,9 +6,8 @@
     ],
     "settings": {
         "files.associations": {
-            "ad9959.h": "c",
-            "stm32f4xx_it.h": "c",
-            "SI4703.C": "cpp"
+            "rda5807m.h": "c",
+            "main.h": "c"
         }
     },
     "extensions": {}

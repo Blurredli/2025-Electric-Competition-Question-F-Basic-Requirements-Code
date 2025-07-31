@@ -28,23 +28,23 @@ Project File Date:  07/31/2025
 *** Using Compiler 'V5.06 update 1 (build 61)', folder: 'D:\keil5\ARM\ARMCC\Bin'
 Build target 'DDS'
 compiling main.c...
-../Core/Src/main.c(277): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+../Core/Src/main.c(279): warning:  #1035-D: single-precision operand implicitly converted to double-precision
         for (float rf = 88; rf <= 108; rf += 0.1)
-../Core/Src/main.c(268): warning:  #177-D: variable "found" was declared but never referenced
+../Core/Src/main.c(270): warning:  #177-D: variable "found" was declared but never referenced
     uint8_t found = 0;        // è¡?ç¤?æ˜?å?å·?ç»?é”?é¢?
-../Core/Src/main.c(269): warning:  #177-D: variable "locked_rf" was declared but never referenced
+../Core/Src/main.c(271): warning:  #177-D: variable "locked_rf" was declared but never referenced
     uint32_t locked_rf = 0;   // è®?å½?é”?å®?çš?RFé¢?çŽ?
-../Core/Src/main.c(270): warning:  #177-D: variable "v_fm" was declared but never referenced
+../Core/Src/main.c(272): warning:  #177-D: variable "v_fm" was declared but never referenced
     float v_fm, v_am;
-../Core/Src/main.c(270): warning:  #177-D: variable "v_am" was declared but never referenced
+../Core/Src/main.c(272): warning:  #177-D: variable "v_am" was declared but never referenced
     float v_fm, v_am;
-../Core/Src/main.c(143): warning:  #177-D: function "DDS_Output_Two" was declared but never referenced
+../Core/Src/main.c(144): warning:  #177-D: function "DDS_Output_Two" was declared but never referenced
   static void DDS_Output_Two(uint32_t lo_fm, uint32_t lo_am)
-../Core/Src/main.c(154): warning:  #177-D: function "Compute_Dual_Voltage" was declared but never referenced
+../Core/Src/main.c(155): warning:  #177-D: function "Compute_Dual_Voltage" was declared but never referenced
   static void Compute_Dual_Voltage(float *v_fm, float *v_am)
 ../Core/Src/main.c: 7 warnings, 0 errors
 linking...
-Program Size: Code=11000 RO-data=456 RW-data=52 ZI-data=2084  
+Program Size: Code=11564 RO-data=456 RW-data=52 ZI-data=2172  
 FromELF: creating hex file...
 "DDS\DDS.axf" - 0 Error(s), 7 Warning(s).
 

@@ -164,6 +164,9 @@
           },
           {
             "path": "../HARDWARE/ADF4351/ADF4351.c"
+          },
+          {
+            "path": "../HARDWARE/RDA5807M/RDA5807M.c"
           }
         ],
         "folders": []
@@ -367,7 +370,9 @@
           "../HARDWARE/MCP41010",
           "../Middlewares/ST/ARM/DSP/Inc",
           ".cmsis/include",
-          "RTE/_DDS"
+          "RTE/_DDS",
+          "../HARDWARE/ADF4351",
+          "../HARDWARE/RDA5807M"
         ],
         "libList": [],
         "defineList": [
