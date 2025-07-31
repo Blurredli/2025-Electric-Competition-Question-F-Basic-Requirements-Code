@@ -46,13 +46,13 @@
 #define DETECT_BUF_LEN 25
 
 #define F_START    88000000UL   // 起始 RF 频率 88 MHz
-#define F_END      108000000UL  // 结束 RF 频率 108 MHz
+#define F_END      108400000UL  // 结束 RF 频率 108 MHz
 #define F_STEP     100000UL     // 搜索步进 100 kHz
 
 // DDS 通道定义
 #define DDS_CH_FM       CH0            // AD9959 通道 0 用于 FM LO
 #define DDS_CH_AM       CH1            // AD9959 通道 1 用于 AM LO
-#define DDS_AMP         1023         // 最大幅度值（10-bit）
+#define DDS_AMP         128         // 最大幅度值（10-bit）
 #define DDS_PHASE       0            // 相位校正值 (0)
 #define DETECT_THRESHOLD 1.7f        // 检测阈值：<1.7V 表示成功解调，未解调默认 3.3V
 
@@ -86,48 +86,6 @@ volatile uint8_t  DetectConvEnd2 = 0;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-    if(GPIO_Pin == KEY2_Pin)
-    {
-        // 简单的消抖处理
-        static uint32_t last_time = 0;
-        uint32_t current_time = HAL_GetTick();
-        
-        if((current_time - last_time) > 50) // 50ms消抖
-        {
-            // 确认按键状态
-            if(HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin) == GPIO_PIN_RESET)
-            {
-                // 按键按下处理
-//                printf("Button pressed!\n");
-                // m++;
-                
-            }
-        }
-        last_time = current_time;
-    }
-        if(GPIO_Pin == KEY0_Pin)
-    {
-        // 简单的消抖处理
-        static uint32_t last_time = 0;
-        uint32_t current_time = HAL_GetTick();
-        
-        if((current_time - last_time) > 50) // 50ms消抖
-        {
-            // 确认按键状态
-            if(HAL_GPIO_ReadPin(KEY0_GPIO_Port, KEY0_Pin) == GPIO_PIN_RESET)
-            {
-                // 按键按下处理
-//                printf("Button pressed!\n");
-                // m--;
-                
-            }
-        }
-        last_time = current_time;
-    }
-}
-
 /**
  * @brief 通过指定 DDS 通道输出正弦波并等待稳定
  */
@@ -137,7 +95,7 @@ static void DDS_Output_Channel(uint8_t ch, uint32_t freq)
     AD9959_Set_Amp(ch,   DDS_AMP);
     AD9959_Set_Phase(ch, DDS_PHASE);
     IO_Update();
-    delay_us(1);
+    delay_us(1000);
 }
 
 /**
@@ -193,7 +151,6 @@ uint32_t SearchFMStations(void)
         
         // 计算IF频率: best_freq * 10000(Hz) - 455000(Hz) = best_freq * 10 - 455(kHz)
         uint32_t if_freq = best_freq * 10000 - 455000; // 单位Hz，455kHz中频
-        
         // 输出AM中频到DDS
         DDS_Output_Channel(DDS_CH_AM, if_freq);
         printf("输出AM中频: %d.%03d MHz\r\n", if_freq/1000000, (if_freq%1000000)/1000);
@@ -272,15 +229,15 @@ int main(void)
   while (1)
   {
 
-         Compute_Dual_Voltage(&v_fm, &v_am);
-     if(v_fm > 1.7f && v_am > 0.069f)
-     {
-        found = 0; // 如果两路电压都大于阈值，表示未解调成功
-        printf("Signal lost, re-scanning...\r\n");
-     }
+    //      Compute_Dual_Voltage(&v_fm, &v_am);
+    //  if(v_fm > 1.7f && v_am > 0.9f)
+    //  {
+    //     found = 0; // 如果两路电压都大于阈值，表示未解调成功
+    //     printf("Signal lost, re-scanning...\r\n");
+    //  }
        if (!found)
        {
-         for (uint32_t rf = F_START; rf <= F_END; rf += F_STEP) {
+         for (uint32_t rf = F_START; rf <= F_END; rf += 200000UL) {
              // 计算中频 LO
              uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
              uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
@@ -289,17 +246,37 @@ int main(void)
              Compute_Dual_Voltage(&v_fm, &v_am);
 
              // 任意一路电压 < 1.7f 表示解调成功，停止扫频
-             if (v_fm <= 1.7f || v_am <= 0.069f) 
+             if (v_fm <= 1.7f || v_am <= 0.10f) 
              {
                  found = 1;
                  locked_rf = rf;
                  // 判断解调模式
-               if (v_fm <= 1.7f && v_am >= 0.069f) 
+               if (v_fm <= 1.7f && v_am >= 0.10f) 
                {
                    printf("FM Found at RF=%lu Hz, FM=%lu Hz, Vfm=%.3f V\r\n", rf, (rf - 10700000UL), v_fm);
-               } else if (v_am <= 0.069f && v_fm >= 1.7f) 
+               } 
+               else if (v_am <= 0.10f && v_fm >= 1.7f) 
                {
                    printf("AM Found at RF=%lu Hz, AM=%lu Hz, Vam=%.3f V\r\n", rf, (rf - 455000UL), v_am);
+                   // --- 精扫逻辑 ---
+                   float min_vam = v_am;
+                   uint32_t min_rf = rf;
+                   for (uint32_t rf_fine = (rf > 0 ? rf : F_START); rf_fine <= rf + 2000000UL && rf_fine <= F_END; rf_fine += 100000UL) 
+                   {
+                       uint32_t lo_am_fine = (rf_fine > 455000UL) ? (rf_fine - 455000UL) : 0;
+                       DDS_Output_Channel(DDS_CH_AM, lo_am_fine);
+                       
+
+                       float v_fm_fine, v_am_fine;
+                       Compute_Dual_Voltage(&v_fm_fine, &v_am_fine);
+                       if (v_am_fine < min_vam) {
+                           min_vam = v_am_fine;
+                           min_rf = rf_fine;
+                       }
+                   }
+                   printf("[FineScan] Best AM at RF=%lu Hz, AM=%lu Hz, Vam=%.3f V\r\n", min_rf, (min_rf - 455000UL), min_vam);
+                   DDS_Output_Channel(DDS_CH_AM, min_rf > 455000UL ? (min_rf - 455000UL) : 0);
+                  //  HAL_Delay(100); // 等待输出稳定
                } else 
                {
                    printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);
@@ -308,12 +285,12 @@ int main(void)
                  HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin,
                      (v_fm <= 1.7f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
                  HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin,
-                     (v_am <= 0.069f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+                     (v_am <= 0.10f) ? GPIO_PIN_RESET : GPIO_PIN_SET);
                  // 保持当前 LO 输出
                  break;
              }
              else{printf("RF=%lu Hz, Vfm=%.3f V, AM = %lu Hz Vam=%.3f V\r\n", rf, v_fm, (rf - 455000UL), v_am);}
-             HAL_Delay(250);
+             
          }
          if (!found) {
              // 全频段无任意一路<1.7V，单频载波或无信号
