@@ -42,11 +42,10 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define FRAME_LENGTH 8
 #define DETECT_BUF_LEN 25
 
-#define F_START    88000000UL   // 起始 RF 频率 88 MHz
-#define F_END      108400000UL  // 结束 RF 频率 108 MHz
+#define F_START    87800000UL   // 起始 RF 频率 88 MHz
+#define F_END      108100000UL  // 结束 RF 频率 108 MHz
 #define F_STEP     100000UL     // 搜索步进 100 kHz
 
 // DDS 通道定义
@@ -118,7 +117,7 @@ static void DDS_Output_Channel(uint8_t ch, uint32_t freq)
     AD9959_Set_Amp(ch,   DDS_AMP);
     AD9959_Set_Phase(ch, DDS_PHASE);
     IO_Update();
-    delay_us(1000);
+    delay_us(100);
 }
 
 /**
@@ -252,14 +251,14 @@ int main(void)
   {
     if (!found)
     {
-      for (uint32_t rf = F_START; rf <= F_END; rf += 200000UL) {
+      for (uint32_t rf = F_START; rf <= F_END; rf += 300000UL) {
         uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
         uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
         DDS_Output_Two(lo_fm, lo_am);
         Compute_Dual_Voltage(&v_fm, &v_am);
 
         // FM精扫判断
-        if (v_fm <= 0.10f && v_am > 0.10f) {
+        if (v_fm <= 0.10f && v_am > 0.20f) {
           found = 1;
           locked_rf = rf;
           printf("FM Found at RF=%lu Hz, FM=%lu Hz, Vfm=%.3f V\r\n", rf, (rf - 10700000UL), v_fm);
@@ -267,10 +266,10 @@ int main(void)
           float min_vfm = v_fm;
           uint32_t best_rf_fm = rf;
           // 在粗扫命中的频率±500kHz范围内，步进100kHz精细扫描
-          for (uint32_t rf_fine = (rf > 500000UL ? rf - 500000UL : F_START); rf_fine <= rf + 500000UL && rf_fine <= F_END; rf_fine += 500000UL) {
+          for (uint32_t rf_fine = (rf > 0 ? rf : F_START); rf_fine <= rf + 500000UL && rf_fine <= F_END; rf_fine += 50000UL) {
             uint32_t lo_fm_fine = (rf_fine > 10700000UL) ? (rf_fine - 10700000UL) : 0;
             DDS_Output_Channel(DDS_CH_FM, lo_fm_fine); // 只输出FM通道
-            // HAL_Delay(10); // 等待DDS输出稳定
+            HAL_Delay(15); // 等待DDS输出稳定
             float v_fm_fine, v_am_dummy;
             Compute_Dual_Voltage(&v_fm_fine, &v_am_dummy); // 只关心v_fm_fine
             if (v_fm_fine < min_vfm) {
@@ -278,7 +277,7 @@ int main(void)
               best_rf_fm = rf_fine;
             }
           }
-          best_rf_fm += 200000;
+          // best_rf_fm += 200000;
           printf("[FineScan] Best FM at RF=%lu Hz, FM=%lu Hz, Vfm=%.3f V\r\n", best_rf_fm, (best_rf_fm - 10700000UL), min_vfm);
           DDS_Output_Channel(DDS_CH_FM, best_rf_fm > 10700000UL ? (best_rf_fm - 10700000UL) : 0); // 输出最优频率
           HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
@@ -286,7 +285,7 @@ int main(void)
           break;
         }
         // AM精扫判断：只对AM通道做精细扫描，寻找v_am最小值
-        else if (v_am <= 0.10f && v_fm > 0.10f) {
+        else if (v_am <= 0.2f && v_fm > 0.10f) {
           found = 1;
           locked_rf = rf;
           printf("AM Found at RF=%lu Hz, AM=%lu Hz, Vam=%.3f V\r\n", rf, (rf - 455000UL), v_am);
@@ -294,10 +293,11 @@ int main(void)
           float min_vam = v_am;
           uint32_t best_rf_am = rf;
           // 在粗扫命中的频率±500kHz范围内，步进10kHz精细扫描
-          for (uint32_t rf_fine = (rf > 500000UL ? rf - 500000UL : F_START); rf_fine <= rf + 5000000UL && rf_fine <= F_END; rf_fine += 100000UL) {
+          for (uint32_t rf_fine = (rf > 0 ? rf : F_START); rf_fine <= rf + 2000000UL && rf_fine <= F_END; rf_fine += 50000UL) 
+          {
             uint32_t lo_am_fine = (rf_fine > 455000UL) ? (rf_fine - 455000UL) : 0;
             DDS_Output_Channel(DDS_CH_AM, lo_am_fine); // 只输出AM通道
-            HAL_Delay(10); // 等待DDS输出稳定
+            // HAL_Delay(10); // 等待DDS输出稳定
             float v_fm_dummy, v_am_fine;
             Compute_Dual_Voltage(&v_fm_dummy, &v_am_fine); // 只关心v_am_fine
             if (v_am_fine < min_vam) {
@@ -305,6 +305,7 @@ int main(void)
               best_rf_am = rf_fine;
             }
           }
+          best_rf_am -= 300000; // 调整为实际AM频率
           printf("[FineScan] Best AM at RF=%lu Hz, AM=%lu Hz, Vam=%.3f V\r\n", best_rf_am, (best_rf_am > 455000UL ? best_rf_am - 455000UL : 0), min_vam);
           DDS_Output_Channel(DDS_CH_AM, best_rf_am > 455000UL ? (best_rf_am - 455000UL) : 0); // 输出最优频率
           HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_SET);
@@ -312,7 +313,7 @@ int main(void)
           break;
         }
         // FM和AM都满足或都不满足
-        else if (v_fm <= 0.10f && v_am <= 0.10f) {
+        else if (v_fm <= 0.10f && v_am <= 0.20f) {
           found = 1;
           locked_rf = rf;
           printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);
@@ -329,13 +330,18 @@ int main(void)
         HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
       }
     }
+    HAL_Delay(300);
     Compute_Dual_Voltage(&v_fm, &v_am);
-    if (found && v_fm > 0.5f)
+    printf("celiang_qian___Vfm=%.4f V, Vam=%.4f V\r\n", v_fm, v_am);
+    if (found && v_fm > 0.10f && v_am > 0.35f)
     {
-      found = 0; // 如果FM电压大于0.5V，认为未锁频，重置状态
-      printf("Vfm=%.4f V, Vam=%.4f V\r\n", v_fm, v_am);
+      Compute_Dual_Voltage(&v_fm, &v_am);
+      if (found && v_fm > 0.10f && v_am > 0.35f)
+      {
+        found = 0; // 如果FM电压大于0.15V，认为未锁频，重置状态
+        printf("!!!!!!!!!!!! Vfm=%.4f V, Vam=%.4f V\r\n", v_fm, v_am);
+      }
     }
-
 
 
       	// si5351_Init(correction);
