@@ -10,7 +10,7 @@
 
 #include <si5351.h>
 #define SI5351_ADDRESS 0x60  // SI5351芯片的I2C地址
-#define I2C_HANDLE hi2c1     // I2C句柄定义，根据实际使用的I2C外设修改
+#define I2C_HANDLE hi2c2     // I2C句柄定义，根据实际使用的I2C外设修改
 extern I2C_HandleTypeDef I2C_HANDLE;
 
 // 私有函数声明
