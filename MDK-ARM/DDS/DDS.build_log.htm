@@ -28,6 +28,7 @@ Project File Date:  08/01/2025
 *** Using Compiler 'V5.06 update 1 (build 61)', folder: 'D:\keil5\ARM\ARMCC\Bin'
 Build target 'DDS'
 compiling main.c...
+<<<<<<< HEAD
 ../Core/Src/main.c(365): warning:  #224-D: the format string requires additional arguments
                          v_am, signal_strength);
 ../Core/Src/main.c(126): warning:  #177-D: function "DDS_Output_Two" was declared but never referenced
@@ -35,6 +36,13 @@ compiling main.c...
 ../Core/Src/main.c: 2 warnings, 0 errors
 linking...
 Program Size: Code=18356 RO-data=456 RW-data=56 ZI-data=2352  
+=======
+../Core/Src/main.c(244): warning:  #550-D: variable "locked_rf" was set but never used
+    uint32_t locked_rf = 0;   // ??Â¼?ø¶¨µ?RFÆµ??
+../Core/Src/main.c: 1 warning, 0 errors
+linking...
+Program Size: Code=16096 RO-data=456 RW-data=56 ZI-data=2352  
+>>>>>>> parent of 4096b34 (AMä¸FMæˆåŠŸ)
 FromELF: creating hex file...
 "DDS\DDS.axf" - 0 Error(s), 2 Warning(s).
 

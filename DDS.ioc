@@ -311,8 +311,13 @@ STMicroelectronics.X-CUBE-ALGOBUILD.1.4.0.LibraryCcDSPOoLibraryJjDSPOoLibrary=tr
 STMicroelectronics.X-CUBE-ALGOBUILD.1.4.0_SwParameter=LibraryCcDSPOoLibraryJjDSPOoLibrary\:true;
 TIM3.AutoReloadPreload=TIM_AUTORELOAD_PRELOAD_ENABLE
 TIM3.IPParameters=Period,AutoReloadPreload,TIM_MasterOutputTrigger,Prescaler
+<<<<<<< HEAD
 TIM3.Period=840-1
 TIM3.Prescaler=10-1
+=======
+TIM3.Period=84-1
+TIM3.Prescaler=4
+>>>>>>> parent of 4096b34 (AM与FM成功)
 TIM3.TIM_MasterOutputTrigger=TIM_TRGO_UPDATE
 USART1.IPParameters=VirtualMode
 USART1.VirtualMode=VM_ASYNC
