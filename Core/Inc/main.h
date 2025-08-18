@@ -70,6 +70,8 @@ void Error_Handler(void);
 #define SCLK_GPIO_Port GPIOD
 #define MOSI_Pin GPIO_PIN_4
 #define MOSI_GPIO_Port GPIOD
+#define Get_AM_Pin GPIO_PIN_1
+#define Get_AM_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 

@@ -205,25 +205,15 @@ void RDA5807M_init(void)
     RDA5807M_Write_Reg(0x02, 0x0002); // 复位芯片
     HAL_Delay(50); // 等待复位完成
 
-    // 0x02寄存器写0xC001，二进制: 1100 0000 0000    0001
+    // 0x02寄存器写0xC001，二进制: 1100 0000 0  001    0001
     // [15]=1: 使能， [14]=1: 取消静音， [0]=1: 使能新配置，其他位为0
-    RDA5807M_Write_Reg(0x02, 0xc001); // 退出复位，启动芯片，取消静音，应用配置
+    RDA5807M_Write_Reg(0x02, 0xc011); // 退出复位，启动芯片，取消静音，应用配置
     HAL_Delay(600); // 等待芯片启动稳定
 
-    // 0x03寄存器写0x0010，二进制: 0000 0000 0001 00 0000：87-108
-
-                                                // 01：76-91
-
-                                                // 10：76-108
-
-                                                // 11：65-76或50-65
+    // 0x03寄存器写0x0010，二进制: 0000 0000 0001 00 00
     // [4]=1: 调谐使能， [3:2]=00: 频段选择（87-108MHz），[1:0]=00: 频率间隔100kHz
-    RDA5807M_Write_Reg(0x03, 0x0018); // 设置调谐、频段、间隔
-// 00：87-108
+    RDA5807M_Write_Reg(0x03, 0x0010); // 设置调谐、频段、间隔
 
-// 01：76-91
-
-// 10：76-108
     // 0x04寄存器写0x0400，二进制: 0000 0100 0000 0000
     // [10]=1: 允许音频输出，其他位为0
     RDA5807M_Write_Reg(0x04, 0x0400); // 设置音频输出
@@ -432,8 +422,6 @@ void RDA5807M_Search_Freq_TurnUp(void)
  * @return 返回1则是电台，0则不是电台
  * @author HZ12138
  * @date 2022-07-21 22:22:30
- * 但是这个功能有BUG，每次调谐（频率设置）过后才会进行一次检测\n\n也就是说如果进行了移动
- * 导致收不到电台信号或者电台消失（出现）则会出现判断失效
  */
 uint8_t RDA5807M_Radio_Instructions(void)
 {
@@ -695,12 +683,14 @@ uint16_t RDA5807M_AutoSearch_FM(uint16_t start_freq, uint16_t end_freq, uint8_t 
         RDA5807M_Set_Freq(freq);
         HAL_Delay(10);
         uint8_t sig = RDA5807M_Read_Signal_Intensity();
-        if(sig > max_signal && sig >= threshold)
+        uint8_t is_station = RDA5807M_Radio_Instructions();
+        if(sig > max_signal && sig >= threshold && is_station)
         {
             max_signal = sig;
             best_freq = freq;
         }
     }
+    if(best_freq == 0) return 0;
     // 2. 100kHz步进精扫
     uint16_t fine_start = (best_freq > 40) ? (best_freq - 40) : start_freq;
     uint16_t fine_end = (best_freq + 40 < end_freq) ? (best_freq + 40) : end_freq;
@@ -710,7 +700,8 @@ uint16_t RDA5807M_AutoSearch_FM(uint16_t start_freq, uint16_t end_freq, uint8_t 
         RDA5807M_Set_Freq(freq);
         HAL_Delay(15);
         uint8_t sig = RDA5807M_Read_Signal_Intensity();
-        if(sig > max_signal)
+        uint8_t is_station = RDA5807M_Radio_Instructions();
+        if(sig > max_signal && is_station)
         {
             max_signal = sig;
             best_freq = freq;
@@ -728,8 +719,6 @@ uint16_t RDA5807M_AutoSearch_FM(uint16_t start_freq, uint16_t end_freq, uint8_t 
  * @return 找到的最佳频率点，如果没找到返回0
  * @author 用户
  * @date 2025-07-31
- * start_freq：起始频率（单位0.01MHz）
- * end_freq：结束频率（单位0.01MHz）
  */
 uint16_t RDA5807M_Advanced_Search(uint16_t start_freq, uint16_t end_freq, uint8_t min_strength)
 {

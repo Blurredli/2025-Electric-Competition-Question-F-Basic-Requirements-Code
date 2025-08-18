@@ -42,11 +42,10 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define FRAME_LENGTH 8
 #define DETECT_BUF_LEN 25
 
-#define F_START    88000000UL   // 起始 RF 频率 88 MHz
-#define F_END      108400000UL  // 结束 RF 频率 108 MHz
+#define F_START    87800000UL   // 起始 RF 频率 88 MHz
+#define F_END      108100000UL  // 结束 RF 频率 108 MHz
 #define F_STEP     100000UL     // 搜索步进 100 kHz
 
 // DDS 通道定义
@@ -55,6 +54,7 @@
 #define DDS_AMP         334         // 最大幅度值（10-bit）
 #define DDS_PHASE       0            // 相位校正值 (0)
 #define DETECT_THRESHOLD 1.7f        // 检测阈值：<1.7V 表示成功解调，未解调默认 3.3V
+
 
 /* USER CODE END PTD */
 
@@ -80,8 +80,13 @@ DetectConvEnd1用来检测ADC是否采集完毕
  */
 volatile uint8_t  DetectConvEnd1 = 0;
 volatile uint8_t  DetectConvEnd2 = 0;
+volatile uint8_t  DetectConvEnd3 = 0;
 uint8_t found = 0;        // 表示是否已经锁频
 
+#define FM_MODE         1            // FM 模式
+#define AM_MODE         2            // AM 模式
+
+uint8_t MODE = FM_MODE; // 默认模式为 FM
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -140,93 +145,76 @@ static void Compute_Dual_Voltage(float *v_fm, float *v_am)
     DetectConvEnd1 = DetectConvEnd2 = 0;
     // 启动 DMA
     HAL_ADC_Start_DMA(&hadc1, (uint32_t*)detect_buf1, DETECT_BUF_LEN);
-    HAL_ADC_Start_DMA(&hadc2, (uint32_t*)detect_buf2, DETECT_BUF_LEN);
+    // HAL_ADC_Start_DMA(&hadc2, (uint32_t*)detect_buf2, DETECT_BUF_LEN);
     // 启动 TIM3 触发两路 ADC
     HAL_TIM_Base_Start(&htim3);
     // 等待两路完成
-    while (!(DetectConvEnd1 && DetectConvEnd2));
+    while (!DetectConvEnd1);
+    // while (!(DetectConvEnd1 && DetectConvEnd2));
     // 停止触发和 DMA
     HAL_TIM_Base_Stop(&htim3);
     HAL_ADC_Stop_DMA(&hadc1);
-    HAL_ADC_Stop_DMA(&hadc2);
+    // HAL_ADC_Stop_DMA(&hadc2);
 
     // 计算 FM 平均电压
     uint32_t sum1 = 0;
     for (uint16_t i = 0; i < DETECT_BUF_LEN; i++) sum1 += detect_buf1[i];
-    *v_fm = ((float)sum1 / DETECT_BUF_LEN) * (3.3f / 4095.0f);
+    *v_fm = ((float)sum1 / DETECT_BUF_LEN) * (3.3f / 4095.0f);     // PA5
+    *v_am = *v_fm;     // PA5
     // 计算 AM 平均电压
-    uint32_t sum2 = 0;
-    for (uint16_t i = 0; i < DETECT_BUF_LEN; i++) sum2 += detect_buf2[i];
-    *v_am = ((float)sum2 / DETECT_BUF_LEN) * (3.3f / 4095.0f);
+    // uint32_t sum2 = 0;
+    // for (uint16_t i = 0; i < DETECT_BUF_LEN; i++) sum2 += detect_buf2[i];
+    // *v_am = ((float)sum2 / DETECT_BUF_LEN) * (3.3f / 4095.0f);     // PA0
+
 }
 
-uint32_t SearchFMStations(void)
+/**
+ * @brief 采集单通道ADC电压（DMA方式），返回平均电压值（单位：V）
+ * @return 平均电压值 (float)
+ */
+static float Compute_Single_Voltage(void)
 {
-    printf("开始搜索FM电台...\r\n");
+    DetectConvEnd1 = 0;
+    // 启动DMA采集
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)detect_buf1, DETECT_BUF_LEN);
+    // 启动定时器触发ADC
+    HAL_TIM_Base_Start(&htim3);
+    // 等待采集完成（需在DMA中断里设置conv_end=1）
+    while (!DetectConvEnd1);
+    // 停止定时器和DMA
+    HAL_TIM_Base_Stop(&htim3);
+    HAL_ADC_Stop_DMA(&hadc1);
 
-    uint16_t start_freq = 8800;  // 88MHz
-    uint16_t end_freq = 10800;   // 108MHz
-    uint8_t threshold = 5;      // 最小信号强度阈值
+    // 计算平均值
+    uint32_t sum = 0;
+    for (uint16_t i = 0; i < DETECT_BUF_LEN; i++) sum += detect_buf1[i];
+    float voltage = ((float)sum / DETECT_BUF_LEN) * (3.3f / 4095.0f); // 假设参考电压3.3V，12位ADC
+    return voltage;
+}
 
-    uint16_t best_freq = 0;
-    uint8_t max_signal = 0;
 
-    printf("粗扫区间: %d.%02d-%d.%02d MHz\r\n",
-           start_freq/100, start_freq%100, end_freq/100, end_freq%100);
+///**
+// * @brief 采集单通道ADC电压（DMA方式），返回平均电压值（单位：V）
+// * @return 平均电压值 (float)
+// */
+//static float MODE_Voltage(void)
+//{
+//    DetectConvEnd3 = 0;
+//    // 启动DMA采集
+//    HAL_ADC_Start_DMA(&hadc3, (uint32_t*)detect_buf1, DETECT_BUF_LEN);
+//    // 启动定时器触发ADC
+//    HAL_TIM_Base_Start(&htim3);
+//    // 等待采集完成（需在DMA中断里设置DetectConvEnd3=1）
+//    while (!DetectConvEnd3);
+//    // 停止定时器和DMA
+//    HAL_TIM_Base_Stop(&htim3);
+//    HAL_ADC_Stop_DMA(&hadc3);
 
-    // 只用最基本算法：只找信号强度最大且高于阈值的频率
-    for(uint16_t freq = start_freq; freq <= end_freq; freq += 20)
-    {
-        RDA5807M_Set_Freq(freq);
-        HAL_Delay(20);
-
-        uint8_t signal = RDA5807M_Read_Signal_Intensity();
-        // if(freq % 50 == 0)
-        printf("频率: %d.%02d MHz, 强度: %d\r\n",
-                  freq/100, freq%100, signal);
-
-        if(signal >= threshold && signal > max_signal)
-        {
-            max_signal = signal;
-            best_freq = freq;
-        }
-    }
-
-    if(best_freq == 0)
-    {
-        printf("未找到有效电台\r\n");
-        return 0;
-    }
-
-    // 精扫：以粗扫最大点为中心，±400kHz范围，步进100kHz
-    uint16_t fine_start = (best_freq > 40) ? (best_freq - 40) : start_freq;
-    uint16_t fine_end = (best_freq + 40 < end_freq) ? (best_freq + 40) : end_freq;
-    uint8_t final_max_signal = 0;
-    uint16_t final_best_freq = best_freq;
-    printf("精细扫描: %d.%02d-%d.%02d MHz\r\n", fine_start/100, fine_start%100, fine_end/100, fine_end%100);
-    for(uint16_t freq = fine_start; freq <= fine_end; freq += 10)
-    {
-        RDA5807M_Set_Freq(freq);
-        HAL_Delay(25);
-        uint8_t signal = RDA5807M_Read_Signal_Intensity();
-        if(signal > final_max_signal)
-        {
-            final_max_signal = signal;
-            final_best_freq = freq;
-        }
-    }
-
-    final_best_freq = final_best_freq + 10;
-
-    RDA5807M_Set_Freq(final_best_freq);
-    HAL_Delay(50);
-    uint8_t final_signal = RDA5807M_Read_Signal_Intensity();
-    printf("锁定最佳电台: %d.%02d MHz, 强度: %d\r\n",
-          final_best_freq/100, final_best_freq%100, final_signal);
-    uint32_t if_freq = final_best_freq * 10000 - 455000;
-    DDS_Output_Channel(DDS_CH_AM, if_freq);
-    printf("输出AM中频: %d.%03d MHz\r\n", if_freq/1000000, (if_freq%1000000)/1000);
-    return final_best_freq;
+//    // 计算平均值
+//    uint32_t sum = 0;
+//    for (uint16_t i = 0; i < DETECT_BUF_LEN; i++) sum += detect_buf1[i];
+//    float voltage = ((float)sum / DETECT_BUF_LEN) * (3.3f / 4095.0f); // 假设参考电压3.3V，12位ADC
+//    return voltage;
 }
 /* USER CODE END PFP */
 
@@ -270,318 +258,122 @@ int main(void)
   MX_ADC2_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
+  MX_ADC3_Init();
   /* USER CODE BEGIN 2 */
   delay_init(168);                            /* 延时初始化 */
   HAL_Delay(50); 
-  // AD9959_Init();
+  AD9959_Init();
   // ADF4351Init();
-  RDA5807M_init();    // 初始化 RDA5807M
+  // RDA5807M_init();    // 初始化 RDA5807M
   // initRingBuffer();		//初始化环形缓冲区
   // HAL_UART_Receive_IT(&TJC_UART, RxBuffer, 1);	//打开串口接收中断
 
   // char str[100];
   // uint32_t nowtime = HAL_GetTick();
   // uint32_t last_m = 0xFFFFFFFF;  // 初始化为一个不可能的值
-  HAL_Delay(500);
-  RDA5807M_Set_Volume(10);
-
-
-
-  uint32_t locked_rf = 8000;   // 记录锁定的RF频率
-  float v_fm, v_am;
+  HAL_Delay(50);
+  // RDA5807M_Set_Volume(10);
+  uint32_t locked_rf = 0;   // 记录锁定的RF频率
+  float v_fm, v_am;  // fm_
+  float v_mode;
+  uint32_t best_rf_fm;
+  uint32_t best_rf_am;
+//  MODE = 2;
   // const int32_t correction = 978;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
-  {   
-    if (!found) 
+  {
+  if (!found)
+  {
+    if (1)
     {
-<<<<<<< HEAD
-        // 调用SearchFMStations搜索最佳FM频率
-        printf("开始巡检信号...\r\n");
-        uint32_t search_start = HAL_GetTick();
-        uint32_t best_freq = SearchFMStations();
-        uint32_t search_time = HAL_GetTick() - search_start;
-        
-        if (best_freq > 0) 
-        {
-            // 找到有效频率，标记为已锁频
-            found = 1;
-            locked_rf = best_freq;
-            
-            // 打印锁频详细信息
-            printf("接收成功: %d.%02d MHz, 搜索时间: %dms\r\n", 
-                  best_freq/100, best_freq%100, search_time);
-            
-            // 获取当前信号强度和电台状态
-            uint8_t final_signal = RDA5807M_Read_Signal_Intensity();
-            
-            // 获取AM/FM解调电压
-            Compute_Dual_Voltage(&v_fm, &v_am);
-            printf("信号状态: 强度=%d, FM电压=%.3fV, AM电压=%.3fV\r\n",
-                  final_signal, v_fm, v_am);
-            
-            // 设置状态LED指示灯（低电平点亮）
-            HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
-        }
-        else 
-        {
-            // 未找到有效频率，等待一段时间后重试
-            printf("搜索失败, 用时=%dms, %dms后再次搜索\r\n", 
-                  search_time, 200);
-                  
-            // 打印可能的原因
-            printf("可能原因: 天线问题/信号区域外/干扰太重\r\n");
-            
-            // 熄灭LED（高电平熄灭）
-            HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_SET);
-            HAL_Delay(200);  // 等待500ms后重试
-        }
-    }
-    // 锁频状态，需要监控信号质量
-    else 
-    {
-        // 每100ms检测一次信号质量
-        static uint32_t last_check_time = 0;
-        uint32_t current_time = HAL_GetTick();
-        
-        if ((current_time - last_check_time) > 100) 
-        {
-            last_check_time = current_time;
-            
-            // 获取AM/FM解调电压
-            Compute_Dual_Voltage(&v_fm, &v_am);
-            
-            // 检查RDA5807是否还能识别为电台
-            uint8_t signal_strength = RDA5807M_Read_Signal_Intensity();
-            
-            // 判断信号是否丢失：
-            // 2. FM检测：RDA5807不识别为电台或信号强度过低
-            uint8_t fm_signal_lost = (signal_strength < 20);
-            
-            if (fm_signal_lost) // AM解调失败或FM信号丢失
-            {
-                printf("信号丢失: AM电压=%.3fV(>1.6V), FM强度=%d(<20), 电台状态=%d\r\n", 
-                       v_am, signal_strength);
-                
-                // 解锁并开始新一轮搜索
-                found = 0;
-                locked_rf = 0;
-                // 熄灭LED（高电平熄灭）
-                HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_SET);
-                printf("正在重新搜索...\r\n");
-            }
-            else 
-            {
-                // 信号仍然有效，闪烁LED指示正常工作
-                HAL_GPIO_TogglePin(LED_FM_GPIO_Port, LED_FM_Pin);
-
-                // 每5秒输出一次当前状态信息(50 * 100ms = 5s)
-                static uint8_t report_counter = 0;
-                if (++report_counter >= 50) 
-                {
-                    report_counter = 0;
-                    printf("锁频正常: 频率=%d.%02d MHz, 强度=%d, AM=%.3fV, FM=%.3fV\r\n", 
-                           locked_rf/100, locked_rf%100, signal_strength, v_am, v_fm);
-                    
-                    // 检测信号质量
-                    if (signal_strength > 40)
-                        printf("信号状态: 非常强\r\n");
-                    else if (signal_strength > 30)
-                        printf("信号状态: 正常\r\n");
-                    else
-                        printf("信号状态: 弱, 可能不稳定\r\n");
-                }
-            }
-        }
-    }
-  }
-  /* USER CODE END WHILE */
-=======
-      for (uint32_t rf = F_START; rf <= F_END; rf += 200000UL) {
+      // FM模式粗略扫频
+      for (uint32_t rf = F_START; rf <= F_END; rf += 300000UL) 
+      {
         uint32_t lo_fm = (rf > 10700000UL) ? (rf - 10700000UL) : 0;
-        uint32_t lo_am = (rf > 455000UL)   ? (rf - 455000UL)   : 0;
-        DDS_Output_Two(lo_fm, lo_am);
+        DDS_Output_Channel(CH0, lo_fm); // 只输出FM通道
         Compute_Dual_Voltage(&v_fm, &v_am);
-
-        // FM精扫判断
-        if (v_fm <= 0.10f && v_am > 0.10f) {
+        
+        // FM精扫判断，只判断FM电压
+        if (v_fm <= 0.10f) {
           found = 1;
           locked_rf = rf;
           printf("FM Found at RF=%lu Hz, FM=%lu Hz, Vfm=%.3f V\r\n", rf, (rf - 10700000UL), v_fm);
           // --- FM精扫 ---
           float min_vfm = v_fm;
-          uint32_t best_rf_fm = rf;
-          // 在粗扫命中的频率±500kHz范围内，步进100kHz精细扫描
-          for (uint32_t rf_fine = (rf > 500000UL ? rf - 500000UL : F_START); rf_fine <= rf + 500000UL && rf_fine <= F_END; rf_fine += 500000UL) {
+          best_rf_fm = rf;
+          // 在粗扫命中的频率±500kHz范围内，步进50kHz精细扫描
+          for (uint32_t rf_fine = (rf > 0 ? rf : F_START); rf_fine <= rf + 500000UL && rf_fine <= F_END; rf_fine += 50000UL) {
             uint32_t lo_fm_fine = (rf_fine > 10700000UL) ? (rf_fine - 10700000UL) : 0;
-            DDS_Output_Channel(DDS_CH_FM, lo_fm_fine); // 只输出FM通道
-            // HAL_Delay(10); // 等待DDS输出稳定
-            float v_fm_fine, v_am_dummy;
-            Compute_Dual_Voltage(&v_fm_fine, &v_am_dummy); // 只关心v_fm_fine
+            DDS_Output_Channel(CH0, lo_fm_fine); // 只输出FM通道
+            HAL_Delay(15); // 等待DDS输出稳定
+            float v_fm_fine = Compute_Single_Voltage(); // 使用单通道采集
             if (v_fm_fine < min_vfm) {
               min_vfm = v_fm_fine;
               best_rf_fm = rf_fine;
             }
           }
-          best_rf_fm += 200000;
           printf("[FineScan] Best FM at RF=%lu Hz, FM=%lu Hz, Vfm=%.3f V\r\n", best_rf_fm, (best_rf_fm - 10700000UL), min_vfm);
-          DDS_Output_Channel(DDS_CH_FM, best_rf_fm > 10700000UL ? (best_rf_fm - 10700000UL) : 0); // 输出最优频率
+          DDS_Output_Channel(CH0, best_rf_fm > 10700000UL ? (best_rf_fm - 10700000UL) : 0); // 输出最优频率
+          HAL_Delay(50);
           HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
           HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_SET);
-          break;
-        }
-        // AM精扫判断：只对AM通道做精细扫描，寻找v_am最小值
-        else if (v_am <= 0.10f && v_fm > 0.10f) {
-          found = 1;
-          locked_rf = rf;
-          printf("AM Found at RF=%lu Hz, AM=%lu Hz, Vam=%.3f V\r\n", rf, (rf - 455000UL), v_am);
-          // --- AM精扫 ---
-          float min_vam = v_am;
-          uint32_t best_rf_am = rf;
-          // 在粗扫命中的频率±500kHz范围内，步进10kHz精细扫描
-          for (uint32_t rf_fine = (rf > 500000UL ? rf - 500000UL : F_START); rf_fine <= rf + 5000000UL && rf_fine <= F_END; rf_fine += 100000UL) {
-            uint32_t lo_am_fine = (rf_fine > 455000UL) ? (rf_fine - 455000UL) : 0;
-            DDS_Output_Channel(DDS_CH_AM, lo_am_fine); // 只输出AM通道
-            HAL_Delay(10); // 等待DDS输出稳定
-            float v_fm_dummy, v_am_fine;
-            Compute_Dual_Voltage(&v_fm_dummy, &v_am_fine); // 只关心v_am_fine
-            if (v_am_fine < min_vam) {
-              min_vam = v_am_fine;
-              best_rf_am = rf_fine;
+
+          v_mode = MODE_Voltage();        // ADC3 = PC2
+          printf("Current Mode Voltage: V=%.4f V\r\n", v_mode);
+
+          if (v_mode < 0.005f)
+          {
+            HAL_GPIO_WritePin(Get_AM_GPIO_Port, Get_AM_Pin, GPIO_PIN_RESET);
+            HAL_Delay(50);
+            best_rf_am = best_rf_fm;
+            printf("[FineScan] Best AM at RF=%lu Hz, AM=%lu Hz, Vam=%.3f V\r\n", best_rf_am, (best_rf_am > 455000UL ? best_rf_am - 455000UL : 0));
+            DDS_Output_Channel(CH0, best_rf_am > 455000UL ? (best_rf_am - 455000UL) : 0); // 输出最优频率
+            HAL_Delay(50);
+              HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_SET);
+              HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
+              break;
+          }
             }
           }
-          printf("[FineScan] Best AM at RF=%lu Hz, AM=%lu Hz, Vam=%.3f V\r\n", best_rf_am, (best_rf_am > 455000UL ? best_rf_am - 455000UL : 0), min_vam);
-          DDS_Output_Channel(DDS_CH_AM, best_rf_am > 455000UL ? (best_rf_am - 455000UL) : 0); // 输出最优频率
-          HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_SET);
-          HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
-          break;
         }
-        // FM和AM都满足或都不满足
-        else if (v_fm <= 0.10f && v_am <= 0.10f) {
-          found = 1;
-          locked_rf = rf;
-          printf("Both FM & AM Found at RF=%lu Hz, Vfm=%.3f V, Vam=%.3f V\r\n", rf, v_fm, v_am);
-          HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
-          HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
-          break;
-        } else {
-          printf("RF=%lu Hz, Vfm=%.3f V, AM = %lu Hz Vam=%.3f V\r\n", rf, v_fm, (rf - 455000UL), v_am);
-        }
-      }
-      if (!found) {
-        printf("Single-tone detected (no FM/AM)\r\n");
-        HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
-      }
     }
-    Compute_Dual_Voltage(&v_fm, &v_am);
-    if (found && v_fm > 0.5f)
-    {
-      found = 0; // 如果FM电压大于0.5V，认为未锁频，重置状态
-      printf("Vfm=%.4f V, Vam=%.4f V\r\n", v_fm, v_am);
-    }
-
-
-
-      	// si5351_Init(correction);
-        // si5351_SetupCLK0(88000000, SI5351_DRIVE_STRENGTH_4MA);
-        // si5351_EnableOutputs((1<<0));     // 使能CLK0，禁用CLK1和CLK2
-      // 未锁频状态，需要进行频率搜索
-      // Compute_Dual_Voltage(&v_fm, &v_am);
-      // printf("Vfm=%.4f V, Vam=%.4f V\r\n", v_fm, v_am);
-      // HAL_Delay(1000);
-    // if (!found) 
-    // {
-    //     // 调用SearchFMStations搜索最佳FM频率
-    //     uint32_t best_freq = SearchFMStations();
-        
-    //     if (best_freq > 0) 
-    //     {
-    //         // 找到有效频率，标记为已锁频
-    //         found = 1;
-    //         locked_rf = best_freq;
-            
-    //         // 打印锁频信息
-    //         printf("锁频成功: %d.%d MHz\r\n", best_freq/100, best_freq%100);
-            
-    //         // 设置状态LED指示灯（低电平点亮）
-    //         HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
-    //     }
-    //     else 
-    //     {
-    //         // 未找到有效频率，等待一段时间后重试
-    //         // 熄灭LED（高电平熄灭）
-    //         HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_SET);
-    //         HAL_Delay(100);
-    //     }
-    // }
-    // // 锁频状态，需要监控信号质量
-    // else 
-    // {
-    //     // 每100ms检测一次信号质量
-    //     static uint32_t last_check_time = 0;
-    //     uint32_t current_time = HAL_GetTick();
-        
-    //     if ((current_time - last_check_time) > 100) 
-    //     {
-    //         last_check_time = current_time;
-            
-    //         // 获取AM/FM解调电压
-    //         Compute_Dual_Voltage(&v_fm, &v_am);
-            
-    //         // 检查RDA5807是否还能识别为电台
-    //         uint8_t is_station = RDA5807M_Radio_Instructions();
-    //         uint8_t signal_strength = RDA5807M_Read_Signal_Intensity();
-            
-    //         // 判断信号是否丢失：
-    //         // 1. AM解调检测：v_am小于0.6V表示AM解调成功
-    //         // 2. FM检测：RDA5807不识别为电台或信号强度过低
-    //         uint8_t am_demod_ok = (v_am < 0.6f); // AM解调成功判断阈值
-    //         uint8_t fm_signal_lost = (!is_station || signal_strength < 20);
-            
-    //         if (v_am > 1.6f && fm_signal_lost) // AM解调失败或FM信号丢失
-    //         {
-    //             printf("信号丢失 AM电压=%.2f(需<0.6V), FM信号强度=%d(需>20), 电台状态=%d\r\n", 
-    //                    v_am, signal_strength, is_station);
-                
-    //             // 解锁并开始新一轮搜索
-    //             found = 0;
-    //             locked_rf = 0;
-    //             // 熄灭LED（高电平熄灭）
-    //             HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_SET);
-    //         }
-    //         else 
-    //         {
-    //             // 信号仍然有效，闪烁LED指示正常工作
-    //             HAL_GPIO_TogglePin(LED_FM_GPIO_Port, LED_FM_Pin);
-                
-    //             // 每5秒输出一次当前状态信息
-    //             static uint8_t report_counter = 0;
-    //             if (++report_counter >= 10) 
-    //             {
-    //                 report_counter = 0;
-    //                 printf("锁频稳定: 频率=%d.%d MHz, 信号强度=%d, 电压FM=%.2f AM=%.2f\r\n", 
-    //                        locked_rf/100, locked_rf%100, signal_strength, v_fm, v_am);
-    //             }
-    //         }
-    //     }
-    // }
     
-      // for (float rf = 88; rf <= 108; rf += 0.1)
-      // {
-      //       ADF4351WriteFreq(rf);
-      //       HAL_Delay(500);
-      // }
+    if (!found) {
+      printf("No signal detected\r\n");
+      HAL_GPIO_WritePin(LED_FM_GPIO_Port, LED_FM_Pin, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(LED_AM_GPIO_Port, LED_AM_Pin, GPIO_PIN_RESET);
+    }
+  
+  // DDS_Output_Channel(CH0, best_rf_am > 455000UL ? (best_rf_am - 455000UL) : 0); // 输出最优频率
+  // printf("Best AM at RF=%lu Hz, AM=%lu Hz, Vam=%.3f V\r\n", best_rf_am, (best_rf_am > 455000UL ? best_rf_am - 455000UL : 0), v_am);
+  HAL_Delay(300);
+  // float current_v = Compute_Single_Voltage(); // 使用单通道采集
+  // printf("当前检测电压: V=%.4f V\r\n", current_v);
+    //  // 解锁判断：如果电压超过阈值，表明信号丢失
+    //  if (found && current_v > 0.2f)
+    //  {
+    //    // 再次确认，排除干扰
+    //    HAL_Delay(50);
+    //    current_v = Compute_Single_Voltage();
+    //    if (current_v > 0.2f)
+    //    {
+    //      found = 0; // 重置状态，下次循环重新搜索
+    //      printf("信号丢失，电压=%.4f V\r\n", current_v);
+    //    }
+    //  }
+  // printf("MODE=%d\r\n", MODE);
 
-    /* USER CODE END WHILE */
->>>>>>> parent of 4096b34 (AM涓嶧M鎴愬姛)
-
-    /* USER CODE BEGIN 3 */
+  /* USER CODE END WHILE */
 }
+    /* USER CODE BEGIN 3 */
+
   /* USER CODE END 3 */
+}
+
 /**
   * @brief System Clock Configuration
   * @retval None
